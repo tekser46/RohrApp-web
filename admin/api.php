@@ -677,19 +677,36 @@ switch ($action) {
 
         // Fetch remote version.json from GitHub
         $remoteUrl = 'https://raw.githubusercontent.com/tekser46/RohrApp-web/main/version.json';
-        $ch = curl_init($remoteUrl);
-        curl_setopt_array($ch, [
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_TIMEOUT => 10,
-            CURLOPT_SSL_VERIFYPEER => true,
-            CURLOPT_USERAGENT => 'RohrApp-Updater/1.0',
-        ]);
-        $response = curl_exec($ch);
-        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        curl_close($ch);
+        $response = false;
 
-        if ($httpCode !== 200 || !$response) {
-            jsonResponse(['error' => 'Konnte Remote-Version nicht abrufen', 'local' => $localVersion], 502);
+        // Try curl first
+        if (function_exists('curl_init')) {
+            $ch = curl_init($remoteUrl);
+            curl_setopt_array($ch, [
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_TIMEOUT        => 10,
+                CURLOPT_FOLLOWLOCATION => true,
+                CURLOPT_SSL_VERIFYPEER => false,
+                CURLOPT_SSL_VERIFYHOST => false,
+                CURLOPT_USERAGENT      => 'RohrApp-Updater/1.0',
+            ]);
+            $response = curl_exec($ch);
+            $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            curl_close($ch);
+            if ($httpCode !== 200) $response = false;
+        }
+
+        // Fallback: file_get_contents
+        if (!$response && ini_get('allow_url_fopen')) {
+            $ctx = stream_context_create(['http' => [
+                'timeout'    => 10,
+                'user_agent' => 'RohrApp-Updater/1.0',
+            ]]);
+            $response = @file_get_contents($remoteUrl, false, $ctx);
+        }
+
+        if (!$response) {
+            jsonResponse(['error' => 'Konnte Remote-Version nicht abrufen. Bitte manuell prüfen.', 'local' => $localVersion, 'remote_url' => $remoteUrl], 502);
         }
 
         $remote = json_decode($response, true);
@@ -715,20 +732,37 @@ switch ($action) {
 
         // 1. Download zip from GitHub
         $zipUrl = 'https://github.com/tekser46/RohrApp-web/archive/refs/heads/main.zip';
-        $ch = curl_init($zipUrl);
-        curl_setopt_array($ch, [
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_FOLLOWLOCATION => true,
-            CURLOPT_TIMEOUT => 60,
-            CURLOPT_SSL_VERIFYPEER => true,
-            CURLOPT_USERAGENT => 'RohrApp-Updater/1.0',
-        ]);
-        $zipData = curl_exec($ch);
-        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        curl_close($ch);
+        $zipData = false;
+        $httpCode = 0;
 
-        if ($httpCode !== 200 || !$zipData) {
-            jsonResponse(['error' => 'Download fehlgeschlagen (HTTP ' . $httpCode . ')'], 502);
+        if (function_exists('curl_init')) {
+            $ch = curl_init($zipUrl);
+            curl_setopt_array($ch, [
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_FOLLOWLOCATION => true,
+                CURLOPT_TIMEOUT        => 60,
+                CURLOPT_SSL_VERIFYPEER => false,
+                CURLOPT_SSL_VERIFYHOST => false,
+                CURLOPT_USERAGENT      => 'RohrApp-Updater/1.0',
+            ]);
+            $zipData = curl_exec($ch);
+            $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            curl_close($ch);
+            if ($httpCode !== 200 || !$zipData) $zipData = false;
+        }
+
+        // Fallback: file_get_contents
+        if (!$zipData && ini_get('allow_url_fopen')) {
+            $ctx = stream_context_create(['http' => [
+                'timeout'    => 60,
+                'user_agent' => 'RohrApp-Updater/1.0',
+                'follow_location' => 1,
+            ]]);
+            $zipData = @file_get_contents($zipUrl, false, $ctx);
+        }
+
+        if (!$zipData) {
+            jsonResponse(['error' => 'Download fehlgeschlagen (HTTP ' . $httpCode . '). Bitte manuell aktualisieren.'], 502);
         }
 
         // Ensure data directory exists
