@@ -1359,8 +1359,52 @@ button { cursor: pointer; font-family: inherit; }
     margin-top: 4px;
 }
 .phone-add-row .form-input {
-    max-width: 210px;
+    max-width: 200px;
     flex: none;
+}
+.phone-range-row {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px dashed var(--border);
+    flex-wrap: wrap;
+}
+.phone-range-row .form-input {
+    max-width: 200px;
+    flex: 1;
+    min-width: 140px;
+}
+.phone-range-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    white-space: nowrap;
+}
+.phone-range-sep {
+    color: var(--text-muted);
+    font-size: 16px;
+    flex-shrink: 0;
+}
+.phone-range-count {
+    font-size: 12px;
+    font-weight: 600;
+    white-space: nowrap;
+    padding: 4px 10px;
+    border-radius: 12px;
+    min-width: 60px;
+    text-align: center;
+}
+.phone-range-count.ok {
+    background: rgba(5,150,105,0.1);
+    color: #059669;
+}
+.phone-range-count.error {
+    background: rgba(239,68,68,0.1);
+    color: var(--danger);
 }
 .phone-empty-note {
     color: var(--text-muted);

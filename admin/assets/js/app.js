@@ -1124,10 +1124,21 @@ const App = (function() {
                         '</label>' +
                         '<div id="phone-tags-' + id + '" class="phone-tags"></div>' +
                         '<div class="phone-add-row">' +
-                          '<input class="form-input" id="phone-add-input-' + id + '" placeholder="+49..." style="max-width:210px">' +
+                          '<input class="form-input" id="phone-add-input-' + id + '" placeholder="+49..." style="max-width:200px">' +
                           '<button class="btn btn-secondary" onclick="App.addPhoneTag(' + id + ')">' +
                             '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="margin-right:4px"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>' +
-                            'Hinzufügen' +
+                            'Einzeln hinzufügen' +
+                          '</button>' +
+                        '</div>' +
+                        '<div class="phone-range-row">' +
+                          '<div class="phone-range-label">oder Bereich:</div>' +
+                          '<input class="form-input" id="phone-range-start-' + id + '" placeholder="Von: +4915792503960" oninput="App.updateRangeCount(' + id + ')">' +
+                          '<span class="phone-range-sep">—</span>' +
+                          '<input class="form-input" id="phone-range-end-' + id + '" placeholder="Bis: +4915792503969" oninput="App.updateRangeCount(' + id + ')">' +
+                          '<span class="phone-range-count" id="phone-range-count-' + id + '"></span>' +
+                          '<button class="btn btn-secondary" id="phone-range-btn-' + id + '" onclick="App.addPhoneRange(' + id + ')" disabled>' +
+                            '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="margin-right:4px"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>' +
+                            'Alle hinzufügen' +
                           '</button>' +
                         '</div>' +
                       '</div>' +
@@ -1151,10 +1162,15 @@ const App = (function() {
             userRow.after(tr);
             renderPhoneTags(id);
 
-            // Enter key on add input
+            // Enter key on single add input
             var addInput = document.getElementById('phone-add-input-' + id);
             if (addInput) addInput.addEventListener('keydown', function(e) {
                 if (e.key === 'Enter') { e.preventDefault(); App.addPhoneTag(id); }
+            });
+            // Enter key on range end input
+            var rangeEnd = document.getElementById('phone-range-end-' + id);
+            if (rangeEnd) rangeEnd.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter') { e.preventDefault(); App.addPhoneRange(id); }
             });
 
             // Animate open
@@ -1216,6 +1232,100 @@ const App = (function() {
         input.value = '';
         renderPhoneTags(userId);
         input.focus();
+    }
+
+    // ── Gemeinsamen Präfix zweier Nummernstrings ermitteln ──
+    function _phonePrefix(a, b) {
+        var len = Math.min(a.length, b.length);
+        var i = 0;
+        while (i < len && a[i] === b[i]) i++;
+        return i; // Länge des gemeinsamen Präfixes
+    }
+
+    function updateRangeCount(userId) {
+        var startEl = document.getElementById('phone-range-start-' + userId);
+        var endEl   = document.getElementById('phone-range-end-'   + userId);
+        var countEl = document.getElementById('phone-range-count-' + userId);
+        var btnEl   = document.getElementById('phone-range-btn-'   + userId);
+        if (!startEl || !endEl || !countEl || !btnEl) return;
+
+        var start = startEl.value.trim();
+        var end   = endEl.value.trim();
+
+        if (!start || !end) {
+            countEl.textContent = '';
+            countEl.className = 'phone-range-count';
+            btnEl.disabled = true;
+            return;
+        }
+
+        var pLen  = _phonePrefix(start, end);
+        var sSuffix = parseInt(start.substring(pLen), 10);
+        var eSuffix = parseInt(end.substring(pLen),   10);
+
+        if (isNaN(sSuffix) || isNaN(eSuffix) || eSuffix < sSuffix) {
+            countEl.textContent = 'Ungültig';
+            countEl.className = 'phone-range-count error';
+            btnEl.disabled = true;
+            return;
+        }
+
+        var count = eSuffix - sSuffix + 1;
+        if (count > 200) {
+            countEl.textContent = count + ' — zu viele (max. 200)';
+            countEl.className = 'phone-range-count error';
+            btnEl.disabled = true;
+            return;
+        }
+
+        countEl.textContent = count + ' Nummer' + (count !== 1 ? 'n' : '');
+        countEl.className = 'phone-range-count ok';
+        btnEl.disabled = false;
+    }
+
+    function addPhoneRange(userId) {
+        var startEl = document.getElementById('phone-range-start-' + userId);
+        var endEl   = document.getElementById('phone-range-end-'   + userId);
+        if (!startEl || !endEl) return;
+
+        var start = startEl.value.trim();
+        var end   = endEl.value.trim();
+        if (!start || !end) { toast('Bitte Start- und Endnummer eingeben', 'warning'); return; }
+
+        var pLen    = _phonePrefix(start, end);
+        var prefix  = start.substring(0, pLen);
+        var sSuffix = start.substring(pLen);
+        var eSuffix = end.substring(pLen);
+        var sNum    = parseInt(sSuffix, 10);
+        var eNum    = parseInt(eSuffix,   10);
+
+        if (isNaN(sNum) || isNaN(eNum) || eNum < sNum) {
+            toast('Ungültige Nummern oder Endnummer kleiner als Startnummer', 'error'); return;
+        }
+
+        var count = eNum - sNum + 1;
+        if (count > 200) { toast('Maximal 200 Nummern auf einmal möglich', 'warning'); return; }
+
+        // Länge des Suffix beibehalten (führende Nullen)
+        var padLen = sSuffix.length;
+        var added = 0;
+        for (var n = sNum; n <= eNum; n++) {
+            var num = prefix + String(n).padStart(padLen, '0');
+            if (_sipgateNumbers.indexOf(num) === -1) {
+                _sipgateNumbers.push(num);
+                added++;
+            }
+        }
+
+        startEl.value = '';
+        endEl.value = '';
+        var countEl = document.getElementById('phone-range-count-' + userId);
+        if (countEl) { countEl.textContent = ''; countEl.className = 'phone-range-count'; }
+        var btnEl = document.getElementById('phone-range-btn-' + userId);
+        if (btnEl) btnEl.disabled = true;
+
+        renderPhoneTags(userId);
+        toast(added + ' Nummer' + (added !== 1 ? 'n' : '') + ' hinzugefügt', 'success');
     }
 
     function editPhoneTag(userId, index) {
@@ -1464,6 +1574,8 @@ const App = (function() {
         updateUser: updateUser,
         deleteUser: deleteUser,
         addPhoneTag: addPhoneTag,
+        addPhoneRange: addPhoneRange,
+        updateRangeCount: updateRangeCount,
         editPhoneTag: editPhoneTag,
         savePhoneTagEdit: savePhoneTagEdit,
         cancelPhoneTagEdit: cancelPhoneTagEdit,
