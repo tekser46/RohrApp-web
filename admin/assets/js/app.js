@@ -995,14 +995,23 @@ const App = (function() {
         try {
             var data = await api('users');
             var c = document.getElementById('pageContent');
+            var regUrl = window.location.origin + window.location.pathname.replace(/[^/]*$/, '') + 'register.php';
             c.innerHTML =
                 '<div class="page-header">' +
                   '<div><h1 class="page-title">Lizenzverwaltung</h1>' +
-                  '<p class="page-subtitle">' + data.users.length + ' Benutzer registriert</p></div>' +
-                  '<button class="btn btn-primary" onclick="App.showAddUser()">' +
-                    '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>' +
-                    ' Neue Lizenz' +
-                  '</button>' +
+                  '<p class="page-subtitle">' + data.users.length + ' Lizenzen aktiv</p></div>' +
+                  '<div style="display:flex;gap:8px;align-items:center">' +
+                    '<div style="display:flex;align-items:center;gap:6px;background:var(--bg-body);border:1px solid var(--border);border-radius:8px;padding:6px 10px;font-size:12px;color:var(--text-muted)">' +
+                      '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>' +
+                      '<span style="max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="' + esc(regUrl) + '">' + esc(regUrl) + '</span>' +
+                      '<button onclick="App.copyRegLink(\'' + esc(regUrl) + '\')" style="border:none;background:none;cursor:pointer;padding:2px 4px;color:var(--primary);font-size:11px;font-weight:600;flex-shrink:0" title="Kopieren">Kopieren</button>' +
+                      '<a href="' + esc(regUrl) + '" target="_blank" style="color:var(--primary);font-size:11px;font-weight:600;text-decoration:none;flex-shrink:0">Öffnen ↗</a>' +
+                    '</div>' +
+                    '<button class="btn btn-primary" onclick="App.showAddUser()">' +
+                      '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>' +
+                      ' Neue Lizenz' +
+                    '</button>' +
+                  '</div>' +
                 '</div>' +
                 '<div class="card"><table class="data-table">' +
                   '<thead><tr><th>Benutzer</th><th>Name &amp; E-Mail</th><th>Firma</th><th>Lizenz / Schlüssel</th><th>Erstellt</th><th>Letzter Login</th><th>Aktionen</th></tr></thead>' +
@@ -1682,6 +1691,16 @@ const App = (function() {
         closeEditRow: closeEditRow,
         updateUser: updateUser,
         deleteUser: deleteUser,
+        copyRegLink: function(url) {
+            if (navigator.clipboard) {
+                navigator.clipboard.writeText(url).then(function() { toast('Registrierungslink kopiert!', 'success'); });
+            } else {
+                var ta = document.createElement('textarea');
+                ta.value = url; document.body.appendChild(ta); ta.select();
+                document.execCommand('copy'); document.body.removeChild(ta);
+                toast('Registrierungslink kopiert!', 'success');
+            }
+        },
         addPhoneTag: addPhoneTag,
         addPhoneRange: addPhoneRange,
         updateRangeCount: updateRangeCount,
