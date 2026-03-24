@@ -1033,6 +1033,7 @@ const App = (function() {
                             <option value="admin">Admin</option>
                         </select>
                     </div>
+                    <div class="form-group" style="grid-column:1/-1"><label class="form-label">Sipgate Nummer <span style="font-size:11px;color:var(--text-muted)">(z.B. +4915792503960)</span></label><input class="form-input" name="sipgate_number" placeholder="+49..."></div>
                     <div class="form-group" style="grid-column:1/-1"><label class="form-label">Passwort * (min. 8 Zeichen)</label><input class="form-input" name="password" type="password" minlength="8" required></div>
                 </div>
             </form>
@@ -1073,6 +1074,10 @@ const App = (function() {
                                 <option value="enterprise" ${data.role==='enterprise'?'selected':''}>Enterprise</option>
                                 <option value="admin" ${data.role==='admin'?'selected':''}>Admin</option>
                             </select>
+                        </div>
+                        <div class="form-group" style="grid-column:1/-1">
+                            <label class="form-label">Sipgate Nummer <span style="font-size:11px;color:var(--text-muted)">(Rufnummer auf die Sipgate weiterleitet)</span></label>
+                            <input class="form-input" name="sipgate_number" value="${esc(data.sipgate_number || '')}" placeholder="+49...">
                         </div>
                         <div class="form-group" style="grid-column:1/-1"><label class="form-label">Neues Passwort (leer lassen = unverändert)</label><input class="form-input" name="password" type="password" placeholder="Min. 8 Zeichen"></div>
                     </div>

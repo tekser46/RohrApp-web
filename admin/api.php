@@ -534,7 +534,7 @@ switch ($action) {
         $db = getDB();
 
         if ($method === 'GET') {
-            $users = $db->query("SELECT id, username, role, name, email, avatar, last_login, created_at FROM users ORDER BY created_at ASC")->fetchAll();
+            $users = $db->query("SELECT id, username, role, name, email, avatar, sipgate_number, last_login, created_at FROM users ORDER BY created_at ASC")->fetchAll();
             jsonResponse(['users' => $users]);
         }
 
@@ -563,8 +563,9 @@ switch ($action) {
                 jsonResponse(['error' => 'Benutzername bereits vergeben'], 409);
             }
 
-            $stmt = $db->prepare("INSERT INTO users (username, password_hash, role, name, email) VALUES (?, ?, ?, ?, ?)");
-            $stmt->execute([$username, password_hash($password, PASSWORD_BCRYPT), $role, $name, $email]);
+            $sipgateNumber = trim($body['sipgate_number'] ?? '');
+            $stmt = $db->prepare("INSERT INTO users (username, password_hash, role, name, email, sipgate_number) VALUES (?, ?, ?, ?, ?, ?)");
+            $stmt->execute([$username, password_hash($password, PASSWORD_BCRYPT), $role, $name, $email, $sipgateNumber ?: null]);
             jsonResponse(['success' => true, 'id' => $db->lastInsertId()]);
         }
         break;
@@ -576,7 +577,7 @@ switch ($action) {
         if (!$id) jsonResponse(['error' => 'ID erforderlich'], 400);
 
         if ($method === 'GET') {
-            $user = $db->prepare("SELECT id, username, role, name, email, avatar, last_login, created_at FROM users WHERE id = ?");
+            $user = $db->prepare("SELECT id, username, role, name, email, avatar, sipgate_number, last_login, created_at FROM users WHERE id = ?");
             $user->execute([$id]);
             $user = $user->fetch();
             if (!$user) jsonResponse(['error' => 'Benutzer nicht gefunden'], 404);
@@ -590,8 +591,12 @@ switch ($action) {
             $fields = [];
             $params = [];
 
-            if (isset($body['name'])) { $fields[] = 'name = ?'; $params[] = $body['name']; }
-            if (isset($body['email'])) { $fields[] = 'email = ?'; $params[] = $body['email']; }
+            if (isset($body['name']))           { $fields[] = 'name = ?';           $params[] = $body['name']; }
+            if (isset($body['email']))          { $fields[] = 'email = ?';          $params[] = $body['email']; }
+            if (array_key_exists('sipgate_number', $body)) {
+                $fields[] = 'sipgate_number = ?';
+                $params[] = trim($body['sipgate_number']) ?: null;
+            }
             if (isset($body['role'])) {
                 if (!in_array($body['role'], ['admin', 'enterprise', 'professional', 'starter'])) {
                     jsonResponse(['error' => 'Ungültige Rolle'], 400);

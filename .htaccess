@@ -1,0 +1,26 @@
+Options -Indexes
+DirectoryIndex index.html index.php
+
+# PHP Settings
+<IfModule mod_php8.c>
+    php_value upload_max_filesize 32M
+    php_value post_max_size 32M
+    php_value max_execution_time 120
+    php_value memory_limit 256M
+</IfModule>
+<IfModule mod_php7.c>
+    php_value upload_max_filesize 32M
+    php_value post_max_size 32M
+    php_value max_execution_time 120
+    php_value memory_limit 256M
+</IfModule>
+
+# Security: block direct access to config
+<Files "config.php">
+    Order allow,deny
+    Deny from all
+</Files>
+<Files "config.example.php">
+    Order allow,deny
+    Deny from all
+</Files>

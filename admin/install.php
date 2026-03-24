@@ -49,8 +49,10 @@ try {
             name VARCHAR(200),
             email VARCHAR(200),
             avatar VARCHAR(500),
+            sipgate_number VARCHAR(50),
             last_login DATETIME,
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            INDEX idx_sipgate (sipgate_number)
         ) ENGINE=InnoDB");
 
         // ── Customers ──
@@ -288,6 +290,7 @@ try {
         $pdo->exec("CREATE TABLE sipgate_calls (
             id          INT AUTO_INCREMENT PRIMARY KEY,
             call_id     VARCHAR(100) UNIQUE,
+            user_id     INT NULL,
             direction   ENUM('in','out') DEFAULT 'in',
             from_number VARCHAR(50),
             to_number   VARCHAR(50),
@@ -300,8 +303,10 @@ try {
             ended_at    DATETIME,
             created_at  DATETIME DEFAULT CURRENT_TIMESTAMP,
             INDEX idx_call_id (call_id),
+            INDEX idx_user (user_id),
             INDEX idx_status (status),
             INDEX idx_customer (customer_id),
+            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL,
             FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE SET NULL
         ) ENGINE=InnoDB");
 

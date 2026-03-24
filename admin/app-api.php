@@ -236,13 +236,14 @@ switch ($action) {
         $license = getLicense($user['id']);
         jsonResponse([
             'user' => [
-                'id'         => $user['id'],
-                'username'   => $user['username'],
-                'name'       => $user['name'],
-                'email'      => $user['email'],
-                'role'       => $user['role'],
-                'avatar'     => $user['avatar'],
-                'last_login' => $user['last_login'],
+                'id'             => $user['id'],
+                'username'       => $user['username'],
+                'name'           => $user['name'],
+                'email'          => $user['email'],
+                'role'           => $user['role'],
+                'avatar'         => $user['avatar'],
+                'sipgate_number' => $user['sipgate_number'] ?? '',
+                'last_login'     => $user['last_login'],
             ],
             'license' => $license,
         ]);
@@ -362,15 +363,24 @@ switch ($action) {
 
         switch ($event) {
             case 'newCall':
-                // Clean number for customer lookup (+49176... or 049176...)
-                $cleanFrom = preg_replace('/[^0-9]/', '', $from);
-                // Try both +49 and 0049 and 0 prefix variants
-                $variants = [$from, '+' . $cleanFrom, '0' . ltrim($cleanFrom, '49')];
+                // ── Find user by sipgate_number (to = dialed number) ──
+                $cleanTo   = preg_replace('/[^+0-9]/', '', $to);
+                $toVariants = array_unique([$to, $cleanTo, '+' . ltrim($cleanTo, '+')]);
+                $owner = null;
+                foreach ($toVariants as $tv) {
+                    $stmt = $db->prepare("SELECT id, name FROM users WHERE REPLACE(REPLACE(sipgate_number,' ',''),'-','') = ? LIMIT 1");
+                    $stmt->execute([preg_replace('/[^+0-9]/', '', $tv)]);
+                    $owner = $stmt->fetch();
+                    if ($owner) break;
+                }
 
+                // ── Find customer by from_number ──
+                $cleanFrom = preg_replace('/[^0-9]/', '', $from);
+                $fromVariants = array_unique([$from, '+' . $cleanFrom, '0' . ltrim($cleanFrom, '490')]);
                 $customer = null;
-                foreach ($variants as $variant) {
+                foreach ($fromVariants as $fv) {
                     $stmt = $db->prepare("SELECT id, name FROM customers WHERE REPLACE(REPLACE(REPLACE(phone,' ',''),'-',''),'/','') = ? LIMIT 1");
-                    $stmt->execute([preg_replace('/[^+0-9]/', '', $variant)]);
+                    $stmt->execute([preg_replace('/[^+0-9]/', '', $fv)]);
                     $customer = $stmt->fetch();
                     if ($customer) break;
                 }
@@ -380,10 +390,10 @@ switch ($action) {
                     $callerName = $customer['name'];
                 }
 
-                $db->prepare("INSERT INTO sipgate_calls (call_id, direction, from_number, to_number, caller_name, status, customer_id, created_at)
-                    VALUES (?, ?, ?, ?, ?, 'new', ?, NOW())
+                $db->prepare("INSERT INTO sipgate_calls (call_id, user_id, direction, from_number, to_number, caller_name, status, customer_id, created_at)
+                    VALUES (?, ?, ?, ?, ?, ?, 'new', ?, NOW())
                     ON DUPLICATE KEY UPDATE status='new', caller_name=VALUES(caller_name)")
-                   ->execute([$callId, $direction, $from, $to, $callerName, $customer['id'] ?? null]);
+                   ->execute([$callId, $owner['id'] ?? null, $direction, $from, $to, $callerName, $customer['id'] ?? null]);
 
                 // Return Sipgate XML — registers onHangup + onAnswer callbacks
                 header('Content-Type: application/xml; charset=UTF-8');
@@ -435,11 +445,16 @@ switch ($action) {
         $limit  = 30;
         $offset = ($page - 1) * $limit;
 
-        $where = '';
-        if ($filter === 'incoming')   $where = "WHERE sc.direction='in'";
-        elseif ($filter === 'outgoing') $where = "WHERE sc.direction='out'";
-        elseif ($filter === 'missed')   $where = "WHERE sc.status='missed'";
-        elseif ($filter === 'irrelevant') $where = "WHERE sc.status='irrelevant'";
+        // Base: only this user's calls (or unassigned if admin)
+        $isAdmin = $user['role'] === 'admin';
+        $where  = $isAdmin
+            ? "WHERE (sc.user_id = {$user['id']} OR sc.user_id IS NULL)"
+            : "WHERE sc.user_id = {$user['id']}";
+
+        if ($filter === 'incoming')    $where .= " AND sc.direction='in'";
+        elseif ($filter === 'outgoing')  $where .= " AND sc.direction='out'";
+        elseif ($filter === 'missed')    $where .= " AND sc.status='missed'";
+        elseif ($filter === 'irrelevant') $where .= " AND sc.status='irrelevant'";
 
         $calls = $db->query("
             SELECT sc.*, c.name as customer_name, c.company as customer_company
@@ -450,8 +465,7 @@ switch ($action) {
             LIMIT $limit OFFSET $offset
         ")->fetchAll();
 
-        $totalStmt = $db->query("SELECT COUNT(*) FROM sipgate_calls sc $where");
-        $total = (int)$totalStmt->fetchColumn();
+        $total = (int)$db->query("SELECT COUNT(*) FROM sipgate_calls sc $where")->fetchColumn();
 
         jsonResponse(['calls' => $calls, 'total' => $total, 'page' => $page]);
         break;
@@ -946,8 +960,9 @@ switch ($action) {
 
         $fields = [];
         $params = [];
-        if (isset($body['name']))  { $fields[] = 'name=?';  $params[] = trim($body['name']); }
-        if (isset($body['email'])) { $fields[] = 'email=?'; $params[] = trim($body['email']); }
+        if (isset($body['name']))           { $fields[] = 'name=?';           $params[] = trim($body['name']); }
+        if (isset($body['email']))          { $fields[] = 'email=?';          $params[] = trim($body['email']); }
+        if (isset($body['sipgate_number'])) { $fields[] = 'sipgate_number=?'; $params[] = trim($body['sipgate_number']); }
 
         if (!empty($body['new_password'])) {
             if (strlen($body['new_password']) < 8) jsonResponse(['error' => 'Mindestens 8 Zeichen'], 400);
