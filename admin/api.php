@@ -112,6 +112,23 @@ function clearLoginAttempts() {
     } catch (Throwable $e) { /* ignore */ }
 })();
 
+// Auto-migration: license_key on licenses
+(function() {
+    try {
+        $db = getDB();
+        $cols = $db->query("SHOW COLUMNS FROM licenses LIKE 'license_key'")->fetchAll();
+        if (empty($cols)) {
+            $db->exec("ALTER TABLE licenses ADD COLUMN license_key VARCHAR(64) UNIQUE NULL AFTER user_id");
+            // Generate keys for existing licenses that don't have one
+            $rows = $db->query("SELECT id FROM licenses WHERE license_key IS NULL")->fetchAll();
+            foreach ($rows as $r) {
+                $key = 'ROHR-' . strtoupper(bin2hex(random_bytes(4))) . '-' . strtoupper(bin2hex(random_bytes(4))) . '-' . strtoupper(bin2hex(random_bytes(4)));
+                $db->prepare("UPDATE licenses SET license_key = ? WHERE id = ?")->execute([$key, $r['id']]);
+            }
+        }
+    } catch (Throwable $e) { /* ignore */ }
+})();
+
 // ── Router ──
 $action = $_GET['action'] ?? '';
 $method = $_SERVER['REQUEST_METHOD'];
@@ -556,7 +573,8 @@ switch ($action) {
                        l.plan        AS license_plan,
                        l.status      AS license_status,
                        l.trial_ends  AS license_trial_ends,
-                       l.expires_at  AS license_expires_at
+                       l.expires_at  AS license_expires_at,
+                       l.license_key AS license_key
                 FROM users u
                 LEFT JOIN licenses l ON l.user_id = u.id
                 ORDER BY u.created_at ASC
@@ -618,8 +636,9 @@ switch ($action) {
             $plan     = $planMap[$role] ?? 'starter';
             $features = json_encode($licenseFeatures[$plan]);
             $trialEnd = date('Y-m-d H:i:s', strtotime('+30 days'));
-            $db->prepare("INSERT INTO licenses (user_id, plan, status, trial_ends, features) VALUES (?, ?, 'trial', ?, ?)")
-               ->execute([$newUserId, $plan, $trialEnd, $features]);
+            $licenseKey = 'ROHR-' . strtoupper(bin2hex(random_bytes(4))) . '-' . strtoupper(bin2hex(random_bytes(4))) . '-' . strtoupper(bin2hex(random_bytes(4)));
+            $db->prepare("INSERT INTO licenses (user_id, plan, status, trial_ends, features, license_key) VALUES (?, ?, 'trial', ?, ?, ?)")
+               ->execute([$newUserId, $plan, $trialEnd, $features, $licenseKey]);
 
             // ── Send welcome email ──
             $settings = $db->query("SELECT `key`, `value` FROM settings WHERE `key` IN ('company_name','company_email')")->fetchAll(PDO::FETCH_KEY_PAIR);
@@ -649,7 +668,7 @@ switch ($action) {
             $mailHeaders = "MIME-Version: 1.0\r\nContent-Type: text/html; charset=UTF-8\r\nFrom: {$companyName} <{$companyEmail}>\r\nX-Mailer: RohrApp+";
             @mail($email, '=?UTF-8?B?' . base64_encode("RohrApp+ – Ihre Zugangsdaten") . '?=', $emailBody, $mailHeaders);
 
-            jsonResponse(['success' => true, 'id' => $newUserId, 'username' => $username, 'password' => $plainPassword]);
+            jsonResponse(['success' => true, 'id' => $newUserId, 'username' => $username, 'password' => $plainPassword, 'license_key' => $licenseKey]);
         }
         break;
 
@@ -668,7 +687,8 @@ switch ($action) {
                        l.status      AS license_status,
                        l.trial_ends  AS license_trial_ends,
                        l.expires_at  AS license_expires_at,
-                       l.features    AS license_features
+                       l.features    AS license_features,
+                       l.license_key   AS license_key
                 FROM users u
                 LEFT JOIN licenses l ON l.user_id = u.id
                 WHERE u.id = ?
@@ -996,6 +1016,84 @@ switch ($action) {
             'files_updated' => count($updated),
             'updated_files' => array_slice($updated, 0, 20),
         ]);
+        break;
+
+    case 'register':
+        if ($method !== 'POST') jsonResponse(['error' => 'POST erforderlich'], 405);
+        $body    = getBody();
+        $email   = trim($body['email']   ?? '');
+        $name    = trim($body['name']    ?? '');
+        $company = trim($body['company'] ?? '');
+        $password = $body['password'] ?? '';
+        $passwordConfirm = $body['password_confirm'] ?? '';
+
+        if (!$email || !$name || !$password) {
+            jsonResponse(['error' => 'Name, E-Mail und Passwort sind erforderlich'], 400);
+        }
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            jsonResponse(['error' => 'Ungültige E-Mail-Adresse'], 400);
+        }
+        if (strlen($password) < 8) {
+            jsonResponse(['error' => 'Passwort muss mindestens 8 Zeichen haben'], 400);
+        }
+        if ($passwordConfirm && $password !== $passwordConfirm) {
+            jsonResponse(['error' => 'Passwörter stimmen nicht überein'], 400);
+        }
+
+        $db = getDB();
+        $chk = $db->prepare("SELECT id FROM users WHERE email = ?");
+        $chk->execute([$email]);
+        if ($chk->fetch()) {
+            jsonResponse(['error' => 'Diese E-Mail ist bereits registriert'], 409);
+        }
+
+        // Auto-generate username
+        $username = strtolower(preg_replace('/[^a-z0-9_]/i', '', explode('@', $email)[0]));
+        if (!$username) $username = 'user' . time();
+        $baseUser = $username; $suffix = 1;
+        while (true) {
+            $cu = $db->prepare("SELECT id FROM users WHERE username = ?");
+            $cu->execute([$username]);
+            if (!$cu->fetch()) break;
+            $username = $baseUser . $suffix++;
+        }
+
+        $db->prepare("INSERT INTO users (username, password_hash, role, name, company, email) VALUES (?, ?, 'starter', ?, ?, ?)")
+           ->execute([$username, password_hash($password, PASSWORD_BCRYPT), $name, $company ?: null, $email]);
+        $newUserId = (int)$db->lastInsertId();
+
+        $licenseFeatures = ['calls'=>true,'customers'=>true,'invoices'=>false,'ai_chat'=>false,'sipgate'=>false,'push'=>false,'games'=>true,'max_invoices'=>0];
+        $trialEnd = date('Y-m-d H:i:s', strtotime('+30 days'));
+        $licenseKey = 'ROHR-' . strtoupper(bin2hex(random_bytes(4))) . '-' . strtoupper(bin2hex(random_bytes(4))) . '-' . strtoupper(bin2hex(random_bytes(4)));
+        $db->prepare("INSERT INTO licenses (user_id, plan, status, trial_ends, features, license_key) VALUES (?, 'starter', 'trial', ?, ?, ?)")
+           ->execute([$newUserId, $trialEnd, json_encode($licenseFeatures), $licenseKey]);
+
+        // Welcome email
+        $appUrl = defined('APP_URL') ? APP_URL : 'https://rohrapp.de';
+        $settings = $db->query("SELECT `key`, `value` FROM settings WHERE `key` IN ('company_name','company_email')")->fetchAll(PDO::FETCH_KEY_PAIR);
+        $companyName  = $settings['company_name']  ?? 'RohrApp+';
+        $companyEmail = $settings['company_email'] ?? 'noreply@rohrapp.de';
+        $emailBody = "<!DOCTYPE html><html><head><meta charset='UTF-8'></head><body style='font-family:Inter,sans-serif;background:#f1f5f9;margin:0;padding:30px'>
+<div style='max-width:520px;margin:0 auto;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,0.08)'>
+  <div style='background:#0066a1;padding:28px 32px'>
+    <div style='color:#fff;font-size:22px;font-weight:700'>RohrApp<span style=\"color:#7dd3fc\">+</span></div>
+    <div style='color:rgba(255,255,255,0.75);font-size:13px;margin-top:4px'>Registrierung erfolgreich</div>
+  </div>
+  <div style='padding:32px'>
+    <p style='margin:0 0 20px;color:#1e293b;font-size:15px'>Hallo <strong>" . htmlspecialchars($name) . "</strong>,</p>
+    <p style='margin:0 0 24px;color:#475569;font-size:14px'>Ihr Konto wurde erfolgreich erstellt. Hier sind Ihre Zugangsdaten:</p>
+    <div style='background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:20px;margin-bottom:24px'>
+      <div style='margin-bottom:12px'><span style='font-size:11px;font-weight:600;color:#64748b;text-transform:uppercase'>E-Mail</span><br><span style='font-size:15px;color:#0066a1;font-weight:600'>" . htmlspecialchars($email) . "</span></div>
+      <div style='margin-bottom:12px'><span style='font-size:11px;font-weight:600;color:#64748b;text-transform:uppercase'>Lizenzschlüssel</span><br><span style='font-size:14px;font-family:monospace;font-weight:700;color:#1e293b;letter-spacing:1px'>{$licenseKey}</span></div>
+      <div><span style='font-size:11px;font-weight:600;color:#64748b;text-transform:uppercase'>Paket</span><br><span style='font-size:14px;color:#059669;font-weight:600'>Starter – 30 Tage Trial</span></div>
+    </div>
+    <a href='{$appUrl}/admin' style='display:inline-block;background:#0066a1;color:#fff;text-decoration:none;padding:12px 28px;border-radius:8px;font-weight:600;font-size:14px'>Jetzt anmelden →</a>
+  </div>
+</div></body></html>";
+        $mailHeaders = "MIME-Version: 1.0\r\nContent-Type: text/html; charset=UTF-8\r\nFrom: {$companyName} <{$companyEmail}>";
+        @mail($email, '=?UTF-8?B?' . base64_encode("RohrApp+ – Registrierung erfolgreich") . '?=', $emailBody, $mailHeaders);
+
+        jsonResponse(['success' => true, 'message' => 'Registrierung erfolgreich! Bitte prüfen Sie Ihre E-Mail.', 'license_key' => $licenseKey]);
         break;
 
     default:

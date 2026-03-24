@@ -211,6 +211,7 @@ try {
         $pdo->exec("CREATE TABLE licenses (
             id           INT AUTO_INCREMENT PRIMARY KEY,
             user_id      INT NOT NULL UNIQUE,
+            license_key  VARCHAR(64) UNIQUE,
             plan         ENUM('starter','professional','enterprise') DEFAULT 'starter',
             status       ENUM('active','expired','suspended','trial') DEFAULT 'trial',
             trial_ends   DATETIME,

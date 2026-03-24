@@ -261,6 +261,9 @@ if (isset($_SESSION['rohrapp_user'])) {
             </div>
 
             <button type="submit" class="login-btn" id="loginBtn">Anmelden</button>
+            <div style="text-align:center;margin-top:16px;font-size:13px;color:rgba(255,255,255,0.6)">
+                Noch kein Konto? <a href="register.php" style="color:#7dd3fc;font-weight:600;text-decoration:none">Kostenlos registrieren →</a>
+            </div>
         </form>
 
         <div class="footer-text">RohrApp+ v1.0 &mdash; Powered by Sahin</div>

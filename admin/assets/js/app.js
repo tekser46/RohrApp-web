@@ -80,7 +80,7 @@ const App = (function() {
         var titles = {
             dashboard: 'Dashboard', calls: 'Anrufe', emails: 'E-Mails',
             messages: 'Nachrichten', chat: 'Live Chat', customers: 'Kunden',
-            games: 'Spiele', settings: 'Einstellungen', users: 'Benutzer'
+            games: 'Spiele', settings: 'Einstellungen', users: 'Lizenzen'
         };
         var tb = document.getElementById('topbarTitle');
         if (tb) tb.textContent = titles[page] || page;
@@ -997,15 +997,15 @@ const App = (function() {
             var c = document.getElementById('pageContent');
             c.innerHTML =
                 '<div class="page-header">' +
-                  '<div><h1 class="page-title">Benutzerverwaltung</h1>' +
+                  '<div><h1 class="page-title">Lizenzverwaltung</h1>' +
                   '<p class="page-subtitle">' + data.users.length + ' Benutzer registriert</p></div>' +
                   '<button class="btn btn-primary" onclick="App.showAddUser()">' +
                     '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>' +
-                    ' Neuer Benutzer' +
+                    ' Neue Lizenz' +
                   '</button>' +
                 '</div>' +
                 '<div class="card"><table class="data-table">' +
-                  '<thead><tr><th>Benutzer</th><th>Name &amp; E-Mail</th><th>Firma / Rolle</th><th>Lizenz</th><th>Erstellt</th><th>Letzter Login</th><th>Aktionen</th></tr></thead>' +
+                  '<thead><tr><th>Benutzer</th><th>Name &amp; E-Mail</th><th>Firma</th><th>Lizenz / Schlüssel</th><th>Erstellt</th><th>Letzter Login</th><th>Aktionen</th></tr></thead>' +
                   '<tbody id="userTableBody">' + renderUserRows(data.users) + '</tbody>' +
                 '</table></div>';
         } catch (e) { toast(e.message, 'error'); }
@@ -1035,7 +1035,9 @@ const App = (function() {
                 '<td><div style="display:flex;align-items:center">' + avatar + '<span style="font-weight:600">' + esc(u.username) + '</span></div></td>' +
                 '<td>' + nameEmail + '</td>' +
                 '<td>' + firmaCell + '</td>' +
-                '<td>' + getLicenseBadge(u.license_plan, u.license_status) + '</td>' +
+                '<td>' + getLicenseBadge(u.license_plan, u.license_status) +
+                (u.license_key ? '<div style="font-family:monospace;font-size:11px;color:var(--text-muted);margin-top:4px;letter-spacing:0.5px">' + esc(u.license_key) + '</div>' : '') +
+                '</td>' +
                 '<td style="white-space:nowrap;font-size:12px">' + formatDate(u.created_at) + '</td>' +
                 '<td>' + lastLogin + '</td>' +
                 '<td>' + actions + '</td></tr>';
@@ -1043,9 +1045,9 @@ const App = (function() {
     }
 
     function showAddUser() {
-        showModal('Neuer Benutzer', `
+        showModal('Neue Lizenz erstellen', `
             <div style="margin-bottom:16px;padding:12px 14px;background:rgba(0,102,161,0.06);border-radius:8px;border-left:3px solid var(--primary);font-size:13px;color:var(--text-secondary)">
-                <strong>Automatisch:</strong> Benutzername wird aus der E-Mail generiert · Passwort wird zufällig erstellt und per E-Mail zugesendet · Lizenz wird entsprechend der Rolle aktiviert.
+                <strong>Automatisch:</strong> Benutzername aus E-Mail · Zufälliges Passwort per E-Mail · Lizenzschlüssel (ROHR-XXXX-XXXX-XXXX) · Lizenz je nach Rolle aktiviert
             </div>
             <form id="addUserForm">
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
@@ -1095,6 +1097,10 @@ const App = (function() {
                         <div style="margin-bottom:12px">
                             <div style="font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;margin-bottom:3px">Passwort (einmalig)</div>
                             <div style="font-size:18px;font-weight:700;font-family:monospace;letter-spacing:2px;color:var(--text-primary)">${esc(result.password || '')}</div>
+                        </div>
+                        <div>
+                            <div style="font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;margin-bottom:3px">Lizenzschlüssel</div>
+                            <div style="font-size:14px;font-weight:700;font-family:monospace;letter-spacing:1px;color:var(--primary)">${esc(result.license_key || '')}</div>
                         </div>
                     </div>
                     <p style="color:var(--text-muted);font-size:12px;margin-top:14px">Benutzer sollte das Passwort nach der ersten Anmeldung ändern.</p>
@@ -1146,7 +1152,7 @@ const App = (function() {
                           '</div>' +
                           '<div>' +
                             '<div class="user-edit-header-title" style="margin-bottom:2px">Benutzer bearbeiten: <span>' + esc(data.username) + '</span></div>' +
-                            '<div style="font-size:12px;color:var(--text-muted)">' + esc(data.email || '—') + ' · Erstellt: ' + formatDate(data.created_at) + '</div>' +
+                            '<div style="font-size:12px;color:var(--text-muted)">' + esc(data.email || '—') + ' · Erstellt: ' + formatDate(data.created_at) + '</div>' + (data.license_key ? '<div style="font-family:monospace;font-size:12px;font-weight:600;color:var(--primary);margin-top:2px;letter-spacing:0.5px">' + esc(data.license_key) + '</div>' : '') +
                           '</div>' +
                         '</div>' +
                         '<button class="btn-icon" onclick="App.closeEditRow(' + id + ')" title="Schließen">' +
