@@ -101,6 +101,17 @@ function clearLoginAttempts() {
     $db->prepare("DELETE FROM login_attempts WHERE ip_address = ?")->execute([$ip]);
 }
 
+// ── Auto-migration: company column on users ──
+(function() {
+    try {
+        $db = getDB();
+        $cols = $db->query("SHOW COLUMNS FROM users LIKE 'company'")->fetchAll();
+        if (empty($cols)) {
+            $db->exec("ALTER TABLE users ADD COLUMN company VARCHAR(200) NULL AFTER name");
+        }
+    } catch (Throwable $e) { /* ignore */ }
+})();
+
 // ── Router ──
 $action = $_GET['action'] ?? '';
 $method = $_SERVER['REQUEST_METHOD'];
@@ -540,7 +551,7 @@ switch ($action) {
 
         if ($method === 'GET') {
             $users = $db->query("
-                SELECT u.id, u.username, u.role, u.name, u.email, u.avatar, u.sipgate_number,
+                SELECT u.id, u.username, u.role, u.name, u.company, u.email, u.avatar, u.sipgate_number,
                        u.last_login, u.created_at,
                        l.plan        AS license_plan,
                        l.status      AS license_status,
@@ -554,10 +565,11 @@ switch ($action) {
         }
 
         if ($method === 'POST') {
-            $body  = getBody();
-            $email = trim($body['email'] ?? '');
-            $name  = trim($body['name'] ?? '');
-            $role  = $body['role'] ?? 'starter';
+            $body    = getBody();
+            $email   = trim($body['email']   ?? '');
+            $name    = trim($body['name']    ?? '');
+            $company = trim($body['company'] ?? '');
+            $role    = $body['role'] ?? 'starter';
 
             if (!$email) {
                 jsonResponse(['error' => 'E-Mail ist erforderlich'], 400);
@@ -592,8 +604,8 @@ switch ($action) {
             $plainPassword = substr(str_shuffle('ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789!@#'), 0, 10);
 
             $sipgateNumber = trim($body['sipgate_number'] ?? '');
-            $stmt = $db->prepare("INSERT INTO users (username, password_hash, role, name, email, sipgate_number) VALUES (?, ?, ?, ?, ?, ?)");
-            $stmt->execute([$username, password_hash($plainPassword, PASSWORD_BCRYPT), $role, $name, $email, $sipgateNumber ?: null]);
+            $stmt = $db->prepare("INSERT INTO users (username, password_hash, role, name, company, email, sipgate_number) VALUES (?, ?, ?, ?, ?, ?, ?)");
+            $stmt->execute([$username, password_hash($plainPassword, PASSWORD_BCRYPT), $role, $name, $company ?: null, $email, $sipgateNumber ?: null]);
             $newUserId = (int)$db->lastInsertId();
 
             // ── Auto-create license ──
@@ -649,7 +661,7 @@ switch ($action) {
 
         if ($method === 'GET') {
             $stmt = $db->prepare("
-                SELECT u.id, u.username, u.role, u.name, u.email, u.avatar, u.sipgate_number,
+                SELECT u.id, u.username, u.role, u.name, u.company, u.email, u.avatar, u.sipgate_number,
                        u.last_login, u.created_at,
                        l.id          AS license_id,
                        l.plan        AS license_plan,
@@ -672,7 +684,8 @@ switch ($action) {
             $fields = [];
             $params = [];
 
-            if (isset($body['name']))  { $fields[] = 'name = ?';  $params[] = $body['name']; }
+            if (isset($body['name']))    { $fields[] = 'name = ?';    $params[] = $body['name']; }
+            if (isset($body['company'])) { $fields[] = 'company = ?'; $params[] = trim($body['company']) ?: null; }
             if (isset($body['email'])) {
                 if ($body['email'] && !filter_var($body['email'], FILTER_VALIDATE_EMAIL)) {
                     jsonResponse(['error' => 'Ungültige E-Mail-Adresse'], 400);

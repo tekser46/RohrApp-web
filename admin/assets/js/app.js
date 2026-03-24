@@ -1005,7 +1005,7 @@ const App = (function() {
                   '</button>' +
                 '</div>' +
                 '<div class="card"><table class="data-table">' +
-                  '<thead><tr><th>Benutzer</th><th>Name &amp; E-Mail</th><th>Rolle</th><th>Lizenz</th><th>Erstellt</th><th>Letzter Login</th><th>Aktionen</th></tr></thead>' +
+                  '<thead><tr><th>Benutzer</th><th>Name &amp; E-Mail</th><th>Firma / Rolle</th><th>Lizenz</th><th>Erstellt</th><th>Letzter Login</th><th>Aktionen</th></tr></thead>' +
                   '<tbody id="userTableBody">' + renderUserRows(data.users) + '</tbody>' +
                 '</table></div>';
         } catch (e) { toast(e.message, 'error'); }
@@ -1023,12 +1023,18 @@ const App = (function() {
                   '<button class="btn-icon" onclick="App.deleteUser(' + u.id + ',\'' + esc(u.username) + '\')" title="Löschen" style="color:var(--danger)">' + trashIcon + '</button>';
             var nameEmail = '<div style="font-weight:500">' + esc(u.name || '—') + '</div>' +
                             '<div style="font-size:12px;color:var(--text-muted)">' + esc(u.email || '—') + '</div>';
+            // Firma statt Rolle anzeigen
+            var firmaCell = u.company
+                ? '<div style="font-weight:600;font-size:13px">' + esc(u.company) + '</div>' +
+                  '<div style="margin-top:2px">' + getRoleBadge(u.role) + '</div>'
+                : getRoleBadge(u.role);
+            var initial = (u.company || u.name || u.username || '?').charAt(0).toUpperCase();
             var avatar = '<div style="width:32px;height:32px;border-radius:50%;background:var(--primary);color:#fff;display:inline-flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;margin-right:8px;flex-shrink:0">' +
-                         esc((u.name || u.username || '?').charAt(0).toUpperCase()) + '</div>';
+                         esc(initial) + '</div>';
             return '<tr id="user-row-' + u.id + '">' +
                 '<td><div style="display:flex;align-items:center">' + avatar + '<span style="font-weight:600">' + esc(u.username) + '</span></div></td>' +
                 '<td>' + nameEmail + '</td>' +
-                '<td>' + getRoleBadge(u.role) + '</td>' +
+                '<td>' + firmaCell + '</td>' +
                 '<td>' + getLicenseBadge(u.license_plan, u.license_status) + '</td>' +
                 '<td style="white-space:nowrap;font-size:12px">' + formatDate(u.created_at) + '</td>' +
                 '<td>' + lastLogin + '</td>' +
@@ -1048,7 +1054,8 @@ const App = (function() {
                         <input class="form-input" name="email" type="email" placeholder="benutzer@firma.de" required autofocus>
                     </div>
                     <div class="form-group"><label class="form-label">Name</label><input class="form-input" name="name" placeholder="Vor- und Nachname"></div>
-                    <div class="form-group"><label class="form-label">Rolle</label>
+                    <div class="form-group"><label class="form-label">Firma</label><input class="form-input" name="company" placeholder="Firmenname"></div>
+                    <div class="form-group" style="grid-column:1/-1"><label class="form-label">Rolle</label>
                         <select class="form-select" name="role">
                             <option value="starter">Starter</option>
                             <option value="professional">Professional</option>
@@ -1149,10 +1156,14 @@ const App = (function() {
 
                       // ── Abschnitt 1: Grunddaten ──
                       '<div class="user-edit-section-title">Grunddaten</div>' +
-                      '<div class="user-edit-fields">' +
+                      '<div class="user-edit-fields" style="grid-template-columns:1fr 1fr 1fr 1fr">' +
                         '<div class="form-group">' +
                           '<label class="form-label">Name</label>' +
                           '<input class="form-input" id="eu-name-' + id + '" value="' + esc(data.name || '') + '">' +
+                        '</div>' +
+                        '<div class="form-group">' +
+                          '<label class="form-label">Firma</label>' +
+                          '<input class="form-input" id="eu-company-' + id + '" value="' + esc(data.company || '') + '" placeholder="Firmenname">' +
                         '</div>' +
                         '<div class="form-group">' +
                           '<label class="form-label">E-Mail</label>' +
@@ -1448,6 +1459,7 @@ const App = (function() {
 
     async function updateUser(id) {
         var name     = document.getElementById('eu-name-'       + id);
+        var company  = document.getElementById('eu-company-'    + id);
         var email    = document.getElementById('eu-email-'      + id);
         var role     = document.getElementById('eu-role-'       + id);
         var password = document.getElementById('eu-password-'   + id);
@@ -1460,9 +1472,10 @@ const App = (function() {
             toast('Passwort muss mindestens 8 Zeichen haben', 'error'); return;
         }
         var body = {
-            name:           name  ? name.value  : '',
-            email:          email ? email.value : '',
-            role:           role  ? role.value  : '',
+            name:           name    ? name.value    : '',
+            company:        company ? company.value : '',
+            email:          email   ? email.value   : '',
+            role:           role    ? role.value    : '',
             sipgate_number: _sipgateNumbers.join(','),
             license_plan:   licPlan  ? licPlan.value  : '',
             license_status: licStat  ? licStat.value  : '',

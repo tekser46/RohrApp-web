@@ -47,6 +47,7 @@ try {
             password_hash VARCHAR(255) NOT NULL,
             role ENUM('admin','enterprise','professional','starter') DEFAULT 'starter',
             name VARCHAR(200),
+            company VARCHAR(200),
             email VARCHAR(200),
             avatar VARCHAR(500),
             sipgate_number VARCHAR(50),
