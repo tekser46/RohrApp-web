@@ -113,32 +113,34 @@ switch ($action) {
     case 'login':
         if ($method !== 'POST') jsonResponse(['error' => 'POST erforderlich'], 405);
         $body = getBody();
-        $username = trim($body['username'] ?? '');
+        $login    = trim($body['username'] ?? '');
         $password = $body['password'] ?? '';
 
-        if (!$username || !$password) {
-            jsonResponse(['error' => 'Benutzername und Passwort erforderlich'], 400);
+        if (!$login || !$password) {
+            jsonResponse(['error' => 'E-Mail/Benutzername und Passwort erforderlich'], 400);
         }
 
         checkBruteForce();
         $db = getDB();
-        $user = $db->prepare("SELECT * FROM users WHERE username = ?");
-        $user->execute([$username]);
+        // Allow login with e-mail OR username
+        $user = $db->prepare("SELECT * FROM users WHERE email = ? OR username = ? LIMIT 1");
+        $user->execute([$login, $login]);
         $user = $user->fetch();
 
         if ($user && password_verify($password, $user['password_hash'])) {
             clearLoginAttempts();
             $_SESSION['rohrapp_user'] = [
-                'id' => $user['id'],
+                'id'       => $user['id'],
                 'username' => $user['username'],
-                'role' => $user['role'],
-                'name' => $user['name']
+                'role'     => $user['role'],
+                'name'     => $user['name'],
+                'email'    => $user['email'],
             ];
             $db->prepare("UPDATE users SET last_login = NOW() WHERE id = ?")->execute([$user['id']]);
             jsonResponse(['success' => true, 'user' => $_SESSION['rohrapp_user']]);
         } else {
             recordFailedLogin();
-            jsonResponse(['error' => 'Ungültiger Benutzername oder Passwort'], 401);
+            jsonResponse(['error' => 'Ungültige E-Mail/Benutzername oder Passwort'], 401);
         }
         break;
 
@@ -529,44 +531,113 @@ switch ($action) {
     // ════════════════════════════════════════
     // USERS (Admin only)
     // ════════════════════════════════════════
+    // ── License helper ──
+    // (defined inline, not as function to avoid redeclaration on repeated includes)
+
     case 'users':
         requireRole('admin');
         $db = getDB();
 
         if ($method === 'GET') {
-            $users = $db->query("SELECT id, username, role, name, email, avatar, sipgate_number, last_login, created_at FROM users ORDER BY created_at ASC")->fetchAll();
+            $users = $db->query("
+                SELECT u.id, u.username, u.role, u.name, u.email, u.avatar, u.sipgate_number,
+                       u.last_login, u.created_at,
+                       l.plan        AS license_plan,
+                       l.status      AS license_status,
+                       l.trial_ends  AS license_trial_ends,
+                       l.expires_at  AS license_expires_at
+                FROM users u
+                LEFT JOIN licenses l ON l.user_id = u.id
+                ORDER BY u.created_at ASC
+            ")->fetchAll();
             jsonResponse(['users' => $users]);
         }
 
         if ($method === 'POST') {
-            $body = getBody();
-            $username = trim($body['username'] ?? '');
-            $password = $body['password'] ?? '';
-            $name = trim($body['name'] ?? '');
+            $body  = getBody();
             $email = trim($body['email'] ?? '');
-            $role = $body['role'] ?? 'starter';
+            $name  = trim($body['name'] ?? '');
+            $role  = $body['role'] ?? 'starter';
 
-            if (!$username || !$password) {
-                jsonResponse(['error' => 'Benutzername und Passwort erforderlich'], 400);
+            if (!$email) {
+                jsonResponse(['error' => 'E-Mail ist erforderlich'], 400);
             }
-            if (strlen($password) < 8) {
-                jsonResponse(['error' => 'Mindestens 8 Zeichen für Passwort'], 400);
+            if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+                jsonResponse(['error' => 'Ungültige E-Mail-Adresse'], 400);
             }
             if (!in_array($role, ['admin', 'enterprise', 'professional', 'starter'])) {
                 jsonResponse(['error' => 'Ungültige Rolle'], 400);
             }
 
-            // Check duplicate username
-            $check = $db->prepare("SELECT id FROM users WHERE username = ?");
-            $check->execute([$username]);
-            if ($check->fetch()) {
-                jsonResponse(['error' => 'Benutzername bereits vergeben'], 409);
+            // Check duplicate email
+            $chk = $db->prepare("SELECT id FROM users WHERE email = ?");
+            $chk->execute([$email]);
+            if ($chk->fetch()) {
+                jsonResponse(['error' => 'E-Mail-Adresse bereits vergeben'], 409);
             }
+
+            // Auto-generate username from email
+            $username = strtolower(preg_replace('/[^a-z0-9_]/i', '', explode('@', $email)[0]));
+            if (!$username) $username = 'user' . time();
+            $baseUser = $username;
+            $suffix = 1;
+            while (true) {
+                $cu = $db->prepare("SELECT id FROM users WHERE username = ?");
+                $cu->execute([$username]);
+                if (!$cu->fetch()) break;
+                $username = $baseUser . $suffix++;
+            }
+
+            // Generate random password
+            $plainPassword = substr(str_shuffle('ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789!@#'), 0, 10);
 
             $sipgateNumber = trim($body['sipgate_number'] ?? '');
             $stmt = $db->prepare("INSERT INTO users (username, password_hash, role, name, email, sipgate_number) VALUES (?, ?, ?, ?, ?, ?)");
-            $stmt->execute([$username, password_hash($password, PASSWORD_BCRYPT), $role, $name, $email, $sipgateNumber ?: null]);
-            jsonResponse(['success' => true, 'id' => $db->lastInsertId()]);
+            $stmt->execute([$username, password_hash($plainPassword, PASSWORD_BCRYPT), $role, $name, $email, $sipgateNumber ?: null]);
+            $newUserId = (int)$db->lastInsertId();
+
+            // ── Auto-create license ──
+            $licenseFeatures = [
+                'starter'      => ['calls'=>true,'customers'=>true,'invoices'=>false,'ai_chat'=>false,'sipgate'=>false,'push'=>false,'games'=>true,'max_invoices'=>0],
+                'professional' => ['calls'=>true,'customers'=>true,'invoices'=>true,'ai_chat'=>true,'sipgate'=>true,'push'=>true,'games'=>true,'max_invoices'=>50],
+                'enterprise'   => ['calls'=>true,'customers'=>true,'invoices'=>true,'ai_chat'=>true,'sipgate'=>true,'push'=>true,'games'=>true,'max_invoices'=>-1],
+            ];
+            $planMap  = ['admin'=>'enterprise','enterprise'=>'enterprise','professional'=>'professional','starter'=>'starter'];
+            $plan     = $planMap[$role] ?? 'starter';
+            $features = json_encode($licenseFeatures[$plan]);
+            $trialEnd = date('Y-m-d H:i:s', strtotime('+30 days'));
+            $db->prepare("INSERT INTO licenses (user_id, plan, status, trial_ends, features) VALUES (?, ?, 'trial', ?, ?)")
+               ->execute([$newUserId, $plan, $trialEnd, $features]);
+
+            // ── Send welcome email ──
+            $settings = $db->query("SELECT `key`, `value` FROM settings WHERE `key` IN ('company_name','company_email')")->fetchAll(PDO::FETCH_KEY_PAIR);
+            $companyName  = $settings['company_name']  ?? 'RohrApp+';
+            $companyEmail = $settings['company_email'] ?? 'noreply@rohrapp.de';
+            $appUrl = defined('APP_URL') ? APP_URL : 'https://rohrapp.de';
+            $displayName = $name ?: $username;
+            $planLabel = ucfirst($plan);
+            $emailBody = "<!DOCTYPE html><html><head><meta charset='UTF-8'></head><body style='font-family:Inter,sans-serif;background:#f1f5f9;margin:0;padding:30px'>
+<div style='max-width:520px;margin:0 auto;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,0.08)'>
+  <div style='background:#0066a1;padding:28px 32px'>
+    <div style='color:#fff;font-size:22px;font-weight:700'>RohrApp<span style=\"color:#7dd3fc\">+</span></div>
+    <div style='color:rgba(255,255,255,0.75);font-size:13px;margin-top:4px'>Ihre Zugangsdaten</div>
+  </div>
+  <div style='padding:32px'>
+    <p style='margin:0 0 20px;color:#1e293b;font-size:15px'>Hallo <strong>" . htmlspecialchars($displayName) . "</strong>,</p>
+    <p style='margin:0 0 24px;color:#475569;font-size:14px'>Ihr Konto wurde erfolgreich erstellt. Hier sind Ihre Anmeldedaten:</p>
+    <div style='background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:20px;margin-bottom:24px'>
+      <div style='margin-bottom:12px'><span style='font-size:11px;font-weight:600;color:#64748b;text-transform:uppercase'>E-Mail</span><br><span style='font-size:15px;color:#0066a1;font-weight:600'>" . htmlspecialchars($email) . "</span></div>
+      <div style='margin-bottom:12px'><span style='font-size:11px;font-weight:600;color:#64748b;text-transform:uppercase'>Passwort</span><br><span style='font-size:18px;color:#1e293b;font-weight:700;font-family:monospace;letter-spacing:2px'>" . htmlspecialchars($plainPassword) . "</span></div>
+      <div><span style='font-size:11px;font-weight:600;color:#64748b;text-transform:uppercase'>Lizenz</span><br><span style='font-size:14px;color:#059669;font-weight:600'>{$planLabel} – 30 Tage Trial</span></div>
+    </div>
+    <a href='{$appUrl}/admin' style='display:inline-block;background:#0066a1;color:#fff;text-decoration:none;padding:12px 28px;border-radius:8px;font-weight:600;font-size:14px'>Jetzt anmelden →</a>
+    <p style='margin:24px 0 0;color:#94a3b8;font-size:12px'>Bitte ändern Sie Ihr Passwort nach der ersten Anmeldung.<br>Bei Fragen wenden Sie sich an: " . htmlspecialchars($companyEmail) . "</p>
+  </div>
+</div></body></html>";
+            $mailHeaders = "MIME-Version: 1.0\r\nContent-Type: text/html; charset=UTF-8\r\nFrom: {$companyName} <{$companyEmail}>\r\nX-Mailer: RohrApp+";
+            @mail($email, '=?UTF-8?B?' . base64_encode("RohrApp+ – Ihre Zugangsdaten") . '?=', $emailBody, $mailHeaders);
+
+            jsonResponse(['success' => true, 'id' => $newUserId, 'username' => $username, 'password' => $plainPassword]);
         }
         break;
 
@@ -577,22 +648,43 @@ switch ($action) {
         if (!$id) jsonResponse(['error' => 'ID erforderlich'], 400);
 
         if ($method === 'GET') {
-            $user = $db->prepare("SELECT id, username, role, name, email, avatar, sipgate_number, last_login, created_at FROM users WHERE id = ?");
-            $user->execute([$id]);
-            $user = $user->fetch();
+            $stmt = $db->prepare("
+                SELECT u.id, u.username, u.role, u.name, u.email, u.avatar, u.sipgate_number,
+                       u.last_login, u.created_at,
+                       l.id          AS license_id,
+                       l.plan        AS license_plan,
+                       l.status      AS license_status,
+                       l.trial_ends  AS license_trial_ends,
+                       l.expires_at  AS license_expires_at,
+                       l.features    AS license_features
+                FROM users u
+                LEFT JOIN licenses l ON l.user_id = u.id
+                WHERE u.id = ?
+            ");
+            $stmt->execute([$id]);
+            $user = $stmt->fetch();
             if (!$user) jsonResponse(['error' => 'Benutzer nicht gefunden'], 404);
             jsonResponse($user);
         }
 
         if ($method === 'PUT' || $method === 'POST') {
-            $body = getBody();
-
-            // Update basic info
+            $body   = getBody();
             $fields = [];
             $params = [];
 
-            if (isset($body['name']))           { $fields[] = 'name = ?';           $params[] = $body['name']; }
-            if (isset($body['email']))          { $fields[] = 'email = ?';          $params[] = $body['email']; }
+            if (isset($body['name']))  { $fields[] = 'name = ?';  $params[] = $body['name']; }
+            if (isset($body['email'])) {
+                if ($body['email'] && !filter_var($body['email'], FILTER_VALIDATE_EMAIL)) {
+                    jsonResponse(['error' => 'Ungültige E-Mail-Adresse'], 400);
+                }
+                // Check email uniqueness (excluding self)
+                if ($body['email']) {
+                    $ec = $db->prepare("SELECT id FROM users WHERE email = ? AND id != ?");
+                    $ec->execute([$body['email'], $id]);
+                    if ($ec->fetch()) jsonResponse(['error' => 'E-Mail bereits vergeben'], 409);
+                }
+                $fields[] = 'email = ?'; $params[] = $body['email'];
+            }
             if (array_key_exists('sipgate_number', $body)) {
                 $fields[] = 'sipgate_number = ?';
                 $params[] = trim($body['sipgate_number']) ?: null;
@@ -611,17 +703,55 @@ switch ($action) {
                 $fields[] = 'password_hash = ?';
                 $params[] = password_hash($body['password'], PASSWORD_BCRYPT);
             }
-
             if ($fields) {
                 $params[] = $id;
                 $db->prepare("UPDATE users SET " . implode(', ', $fields) . " WHERE id = ?")->execute($params);
+            }
+
+            // ── License update ──
+            $licPlans   = ['starter', 'professional', 'enterprise'];
+            $licStatuses = ['trial', 'active', 'expired', 'suspended'];
+            if (isset($body['license_plan']) || isset($body['license_status']) || isset($body['license_expires_at'])) {
+                $lic = $db->prepare("SELECT id FROM licenses WHERE user_id = ?");
+                $lic->execute([$id]);
+                $licRow = $lic->fetch();
+
+                if ($licRow) {
+                    $lf = []; $lp = [];
+                    if (isset($body['license_plan']) && in_array($body['license_plan'], $licPlans)) {
+                        $lf[] = 'plan = ?'; $lp[] = $body['license_plan'];
+                        // Update features for new plan
+                        $licenseFeatures = [
+                            'starter'      => ['calls'=>true,'customers'=>true,'invoices'=>false,'ai_chat'=>false,'sipgate'=>false,'push'=>false,'games'=>true,'max_invoices'=>0],
+                            'professional' => ['calls'=>true,'customers'=>true,'invoices'=>true,'ai_chat'=>true,'sipgate'=>true,'push'=>true,'games'=>true,'max_invoices'=>50],
+                            'enterprise'   => ['calls'=>true,'customers'=>true,'invoices'=>true,'ai_chat'=>true,'sipgate'=>true,'push'=>true,'games'=>true,'max_invoices'=>-1],
+                        ];
+                        $lf[] = 'features = ?'; $lp[] = json_encode($licenseFeatures[$body['license_plan']] ?? $licenseFeatures['starter']);
+                    }
+                    if (isset($body['license_status']) && in_array($body['license_status'], $licStatuses)) {
+                        $lf[] = 'status = ?'; $lp[] = $body['license_status'];
+                    }
+                    if (isset($body['license_expires_at'])) {
+                        $lf[] = 'expires_at = ?'; $lp[] = $body['license_expires_at'] ?: null;
+                    }
+                    if ($lf) { $lp[] = $id; $db->prepare("UPDATE licenses SET " . implode(', ', $lf) . " WHERE user_id = ?")->execute($lp); }
+                } else {
+                    // Create missing license
+                    $plan = $body['license_plan'] ?? 'starter';
+                    $licenseFeatures = [
+                        'starter'      => ['calls'=>true,'customers'=>true,'invoices'=>false,'ai_chat'=>false,'sipgate'=>false,'push'=>false,'games'=>true,'max_invoices'=>0],
+                        'professional' => ['calls'=>true,'customers'=>true,'invoices'=>true,'ai_chat'=>true,'sipgate'=>true,'push'=>true,'games'=>true,'max_invoices'=>50],
+                        'enterprise'   => ['calls'=>true,'customers'=>true,'invoices'=>true,'ai_chat'=>true,'sipgate'=>true,'push'=>true,'games'=>true,'max_invoices'=>-1],
+                    ];
+                    $db->prepare("INSERT INTO licenses (user_id, plan, status, trial_ends, features) VALUES (?, ?, 'trial', ?, ?)")
+                       ->execute([$id, $plan, date('Y-m-d H:i:s', strtotime('+30 days')), json_encode($licenseFeatures[$plan] ?? $licenseFeatures['starter'])]);
+                }
             }
             jsonResponse(['success' => true]);
         }
 
         if ($method === 'DELETE') {
-            // Don't allow deleting yourself
-            if ($id === $_SESSION['rohrapp_user']['id']) {
+            if ($id === ($_SESSION['rohrapp_user']['id'] ?? 0)) {
                 jsonResponse(['error' => 'Sie können sich nicht selbst löschen'], 400);
             }
             $db->prepare("DELETE FROM users WHERE id = ?")->execute([$id]);

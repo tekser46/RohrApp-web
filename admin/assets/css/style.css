@@ -1282,6 +1282,16 @@ button { cursor: pointer; font-family: inherit; }
     gap: 16px;
     margin-bottom: 16px;
 }
+.user-edit-section-title {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    margin: 16px 0 10px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+}
 .user-edit-footer {
     display: flex;
     gap: 10px;

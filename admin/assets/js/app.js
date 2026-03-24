@@ -976,6 +976,18 @@ const App = (function() {
     var _editingUserId = null;
     var _sipgateNumbers = [];
 
+    function getLicenseBadge(plan, status) {
+        if (!plan) return '<span class="badge badge-muted">Keine Lizenz</span>';
+        var planColors = { starter: 'badge-muted', professional: 'badge-success', enterprise: 'badge-info' };
+        var statusIcons = { active: '✓', trial: '⏱', expired: '✗', suspended: '⊘' };
+        var statusColors = { active: '#059669', trial: '#d97706', expired: '#dc2626', suspended: '#94a3b8' };
+        var cls = planColors[plan] || 'badge-muted';
+        var icon = statusIcons[status] || '';
+        var col = statusColors[status] || '';
+        return '<span class="badge ' + cls + '" style="gap:4px">' + esc(plan.charAt(0).toUpperCase() + plan.slice(1)) +
+               ' <span style="color:' + col + ';font-size:10px">' + icon + '</span></span>';
+    }
+
     async function renderUsers() {
         if (!hasAccess('users')) return;
         _editingUserId = null;
@@ -983,24 +995,19 @@ const App = (function() {
         try {
             var data = await api('users');
             var c = document.getElementById('pageContent');
-            c.innerHTML = `
-                <div class="page-header">
-                    <div>
-                        <h1 class="page-title">Benutzerverwaltung</h1>
-                        <p class="page-subtitle">${data.users.length} Benutzer registriert</p>
-                    </div>
-                    <button class="btn btn-primary" onclick="App.showAddUser()">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                        Neuer Benutzer
-                    </button>
-                </div>
-                <div class="card">
-                    <table class="data-table">
-                        <thead><tr><th>Benutzer</th><th>Name</th><th>E-Mail</th><th>Rolle</th><th>Letzter Login</th><th>Erstellt</th><th>Aktionen</th></tr></thead>
-                        <tbody id="userTableBody">${renderUserRows(data.users)}</tbody>
-                    </table>
-                </div>
-            `;
+            c.innerHTML =
+                '<div class="page-header">' +
+                  '<div><h1 class="page-title">Benutzerverwaltung</h1>' +
+                  '<p class="page-subtitle">' + data.users.length + ' Benutzer registriert</p></div>' +
+                  '<button class="btn btn-primary" onclick="App.showAddUser()">' +
+                    '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>' +
+                    ' Neuer Benutzer' +
+                  '</button>' +
+                '</div>' +
+                '<div class="card"><table class="data-table">' +
+                  '<thead><tr><th>Benutzer</th><th>Name &amp; E-Mail</th><th>Rolle</th><th>Lizenz</th><th>Erstellt</th><th>Letzter Login</th><th>Aktionen</th></tr></thead>' +
+                  '<tbody id="userTableBody">' + renderUserRows(data.users) + '</tbody>' +
+                '</table></div>';
         } catch (e) { toast(e.message, 'error'); }
     }
 
@@ -1008,30 +1015,39 @@ const App = (function() {
         return users.map(function(u) {
             var lastLogin = u.last_login ? formatDate(u.last_login) : '<span style="color:var(--text-muted)">Nie</span>';
             var isCurrentUser = u.id === window.ROHRAPP_USER.id;
-            var editIcon = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>';
+            var editIcon  = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>';
             var trashIcon = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>';
             var actions = isCurrentUser
                 ? '<span style="font-size:11px;color:var(--text-muted)">Sie</span>'
                 : '<button class="btn-icon" id="edit-btn-' + u.id + '" onclick="App.editUser(' + u.id + ')" title="Bearbeiten">' + editIcon + '</button> ' +
                   '<button class="btn-icon" onclick="App.deleteUser(' + u.id + ',\'' + esc(u.username) + '\')" title="Löschen" style="color:var(--danger)">' + trashIcon + '</button>';
+            var nameEmail = '<div style="font-weight:500">' + esc(u.name || '—') + '</div>' +
+                            '<div style="font-size:12px;color:var(--text-muted)">' + esc(u.email || '—') + '</div>';
+            var avatar = '<div style="width:32px;height:32px;border-radius:50%;background:var(--primary);color:#fff;display:inline-flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;margin-right:8px;flex-shrink:0">' +
+                         esc((u.name || u.username || '?').charAt(0).toUpperCase()) + '</div>';
             return '<tr id="user-row-' + u.id + '">' +
-                '<td style="font-weight:600">' + esc(u.username) + '</td>' +
-                '<td>' + esc(u.name || '-') + '</td>' +
-                '<td>' + esc(u.email || '-') + '</td>' +
+                '<td><div style="display:flex;align-items:center">' + avatar + '<span style="font-weight:600">' + esc(u.username) + '</span></div></td>' +
+                '<td>' + nameEmail + '</td>' +
                 '<td>' + getRoleBadge(u.role) + '</td>' +
+                '<td>' + getLicenseBadge(u.license_plan, u.license_status) + '</td>' +
+                '<td style="white-space:nowrap;font-size:12px">' + formatDate(u.created_at) + '</td>' +
                 '<td>' + lastLogin + '</td>' +
-                '<td style="white-space:nowrap">' + formatDate(u.created_at) + '</td>' +
                 '<td>' + actions + '</td></tr>';
         }).join('');
     }
 
     function showAddUser() {
         showModal('Neuer Benutzer', `
+            <div style="margin-bottom:16px;padding:12px 14px;background:rgba(0,102,161,0.06);border-radius:8px;border-left:3px solid var(--primary);font-size:13px;color:var(--text-secondary)">
+                <strong>Automatisch:</strong> Benutzername wird aus der E-Mail generiert · Passwort wird zufällig erstellt und per E-Mail zugesendet · Lizenz wird entsprechend der Rolle aktiviert.
+            </div>
             <form id="addUserForm">
-                <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
-                    <div class="form-group"><label class="form-label">Benutzername *</label><input class="form-input" name="username" required></div>
-                    <div class="form-group"><label class="form-label">Name</label><input class="form-input" name="name"></div>
-                    <div class="form-group"><label class="form-label">E-Mail</label><input class="form-input" name="email" type="email"></div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+                    <div class="form-group" style="grid-column:1/-1">
+                        <label class="form-label">E-Mail *</label>
+                        <input class="form-input" name="email" type="email" placeholder="benutzer@firma.de" required autofocus>
+                    </div>
+                    <div class="form-group"><label class="form-label">Name</label><input class="form-input" name="name" placeholder="Vor- und Nachname"></div>
                     <div class="form-group"><label class="form-label">Rolle</label>
                         <select class="form-select" name="role">
                             <option value="starter">Starter</option>
@@ -1040,13 +1056,11 @@ const App = (function() {
                             <option value="admin">Admin</option>
                         </select>
                     </div>
-                    <div class="form-group" style="grid-column:1/-1"><label class="form-label">Sipgate Nummer <span style="font-size:11px;color:var(--text-muted)">(z.B. +4915792503960)</span></label><input class="form-input" name="sipgate_number" placeholder="+49..."></div>
-                    <div class="form-group" style="grid-column:1/-1"><label class="form-label">Passwort * (min. 8 Zeichen)</label><input class="form-input" name="password" type="password" minlength="8" required></div>
                 </div>
             </form>
         `, [
             { label: 'Abbrechen', cls: 'btn-secondary', action: 'closeModal()' },
-            { label: 'Erstellen', cls: 'btn-primary', action: 'App.saveUser()' }
+            { label: 'Erstellen &amp; E-Mail senden', cls: 'btn-primary', action: 'App.saveUser()' }
         ]);
     }
 
@@ -1055,12 +1069,30 @@ const App = (function() {
         var fd = new FormData(form);
         var body = {};
         fd.forEach(function(v, k) { body[k] = v; });
-        if (!body.username || !body.password) { toast('Benutzername und Passwort erforderlich', 'error'); return; }
-        if (body.password.length < 8) { toast('Passwort muss mindestens 8 Zeichen haben', 'error'); return; }
+        if (!body.email) { toast('E-Mail ist erforderlich', 'error'); return; }
         try {
-            await api('users', { method: 'POST', body: body });
+            var result = await api('users', { method: 'POST', body: body });
             closeModal();
-            toast('Benutzer erstellt', 'success');
+            // Show created credentials
+            showModal('Benutzer erstellt ✓', `
+                <div style="text-align:center;padding:8px 0">
+                    <div style="width:56px;height:56px;border-radius:50%;background:rgba(5,150,105,0.1);display:flex;align-items:center;justify-content:center;margin:0 auto 16px">
+                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+                    </div>
+                    <p style="color:var(--text-secondary);font-size:14px;margin-bottom:20px">Zugangsdaten wurden per E-Mail gesendet</p>
+                    <div style="background:var(--bg-body);border-radius:8px;padding:16px;text-align:left">
+                        <div style="margin-bottom:12px">
+                            <div style="font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;margin-bottom:3px">Benutzername (Auto)</div>
+                            <div style="font-size:15px;font-weight:600;color:var(--primary)">${esc(result.username || '')}</div>
+                        </div>
+                        <div style="margin-bottom:12px">
+                            <div style="font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;margin-bottom:3px">Passwort (einmalig)</div>
+                            <div style="font-size:18px;font-weight:700;font-family:monospace;letter-spacing:2px;color:var(--text-primary)">${esc(result.password || '')}</div>
+                        </div>
+                    </div>
+                    <p style="color:var(--text-muted);font-size:12px;margin-top:14px">Benutzer sollte das Passwort nach der ersten Anmeldung ändern.</p>
+                </div>
+            `, [{ label: 'OK', cls: 'btn-primary', action: 'closeModal()' }]);
             renderUsers();
         } catch (e) { toast(e.message, 'error'); }
     }
@@ -1086,6 +1118,11 @@ const App = (function() {
             if (!userRow) return;
             userRow.classList.add('user-row-active');
 
+            var licPlan   = data.license_plan   || 'starter';
+            var licStatus = data.license_status || 'trial';
+            var licTrialEnds = data.license_trial_ends ? data.license_trial_ends.substring(0,10) : '';
+            var licExpiresAt = data.license_expires_at ? data.license_expires_at.substring(0,10) : '';
+
             var tr = document.createElement('tr');
             tr.id = 'user-edit-row-' + id;
             tr.className = 'user-edit-row';
@@ -1093,12 +1130,25 @@ const App = (function() {
                 '<td colspan="7" style="padding:0">' +
                   '<div class="user-edit-panel" id="user-edit-panel-' + id + '">' +
                     '<div class="user-edit-panel-inner">' +
+
+                      // ── Header ──
                       '<div class="user-edit-header">' +
-                        '<div class="user-edit-header-title">Benutzer bearbeiten: <span>' + esc(data.username) + '</span></div>' +
+                        '<div style="display:flex;align-items:center;gap:12px">' +
+                          '<div style="width:42px;height:42px;border-radius:50%;background:var(--primary);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:17px;flex-shrink:0">' +
+                            esc((data.name || data.username || '?').charAt(0).toUpperCase()) +
+                          '</div>' +
+                          '<div>' +
+                            '<div class="user-edit-header-title" style="margin-bottom:2px">Benutzer bearbeiten: <span>' + esc(data.username) + '</span></div>' +
+                            '<div style="font-size:12px;color:var(--text-muted)">' + esc(data.email || '—') + ' · Erstellt: ' + formatDate(data.created_at) + '</div>' +
+                          '</div>' +
+                        '</div>' +
                         '<button class="btn-icon" onclick="App.closeEditRow(' + id + ')" title="Schließen">' +
                           '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>' +
                         '</button>' +
                       '</div>' +
+
+                      // ── Abschnitt 1: Grunddaten ──
+                      '<div class="user-edit-section-title">Grunddaten</div>' +
                       '<div class="user-edit-fields">' +
                         '<div class="form-group">' +
                           '<label class="form-label">Name</label>' +
@@ -1111,17 +1161,47 @@ const App = (function() {
                         '<div class="form-group">' +
                           '<label class="form-label">Rolle</label>' +
                           '<select class="form-select" id="eu-role-' + id + '">' +
-                            '<option value="starter"' + (data.role === 'starter' ? ' selected' : '') + '>Starter</option>' +
+                            '<option value="starter"'      + (data.role === 'starter'      ? ' selected' : '') + '>Starter</option>' +
                             '<option value="professional"' + (data.role === 'professional' ? ' selected' : '') + '>Professional</option>' +
-                            '<option value="enterprise"' + (data.role === 'enterprise' ? ' selected' : '') + '>Enterprise</option>' +
-                            '<option value="admin"' + (data.role === 'admin' ? ' selected' : '') + '>Admin</option>' +
+                            '<option value="enterprise"'   + (data.role === 'enterprise'   ? ' selected' : '') + '>Enterprise</option>' +
+                            '<option value="admin"'        + (data.role === 'admin'        ? ' selected' : '') + '>Admin</option>' +
                           '</select>' +
                         '</div>' +
                       '</div>' +
-                      '<div class="form-group">' +
-                        '<label class="form-label">Sipgate Nummern' +
-                          '<span style="font-size:11px;color:var(--text-muted);text-transform:none;font-weight:400;margin-left:6px">Rufnummern auf die Sipgate weiterleitet</span>' +
-                        '</label>' +
+
+                      // ── Abschnitt 2: Lizenz ──
+                      '<div class="user-edit-section-title">Lizenz</div>' +
+                      '<div class="user-edit-fields" style="grid-template-columns:1fr 1fr 1fr 1fr">' +
+                        '<div class="form-group">' +
+                          '<label class="form-label">Plan</label>' +
+                          '<select class="form-select" id="eu-lic-plan-' + id + '">' +
+                            '<option value="starter"'      + (licPlan === 'starter'      ? ' selected' : '') + '>Starter</option>' +
+                            '<option value="professional"' + (licPlan === 'professional' ? ' selected' : '') + '>Professional</option>' +
+                            '<option value="enterprise"'   + (licPlan === 'enterprise'   ? ' selected' : '') + '>Enterprise</option>' +
+                          '</select>' +
+                        '</div>' +
+                        '<div class="form-group">' +
+                          '<label class="form-label">Status</label>' +
+                          '<select class="form-select" id="eu-lic-status-' + id + '">' +
+                            '<option value="trial"'     + (licStatus === 'trial'     ? ' selected' : '') + '>Trial</option>' +
+                            '<option value="active"'    + (licStatus === 'active'    ? ' selected' : '') + '>Aktiv</option>' +
+                            '<option value="expired"'   + (licStatus === 'expired'   ? ' selected' : '') + '>Abgelaufen</option>' +
+                            '<option value="suspended"' + (licStatus === 'suspended' ? ' selected' : '') + '>Gesperrt</option>' +
+                          '</select>' +
+                        '</div>' +
+                        '<div class="form-group">' +
+                          '<label class="form-label">Trial endet</label>' +
+                          '<input class="form-input" type="date" id="eu-lic-trial-' + id + '" value="' + esc(licTrialEnds) + '">' +
+                        '</div>' +
+                        '<div class="form-group">' +
+                          '<label class="form-label">Läuft ab am</label>' +
+                          '<input class="form-input" type="date" id="eu-lic-expires-' + id + '" value="' + esc(licExpiresAt) + '">' +
+                        '</div>' +
+                      '</div>' +
+
+                      // ── Abschnitt 3: Sipgate Nummern ──
+                      '<div class="user-edit-section-title">Sipgate Nummern</div>' +
+                      '<div class="form-group" style="margin-bottom:0">' +
                         '<div id="phone-tags-' + id + '" class="phone-tags"></div>' +
                         '<div class="phone-add-row">' +
                           '<input class="form-input" id="phone-add-input-' + id + '" placeholder="+49..." style="max-width:200px">' +
@@ -1131,7 +1211,7 @@ const App = (function() {
                           '</button>' +
                         '</div>' +
                         '<div class="phone-range-row">' +
-                          '<div class="phone-range-label">oder Bereich:</div>' +
+                          '<div class="phone-range-label">Bereich:</div>' +
                           '<input class="form-input" id="phone-range-start-' + id + '" placeholder="Von: +4915792503960" oninput="App.updateRangeCount(' + id + ')">' +
                           '<span class="phone-range-sep">—</span>' +
                           '<input class="form-input" id="phone-range-end-' + id + '" placeholder="Bis: +4915792503969" oninput="App.updateRangeCount(' + id + ')">' +
@@ -1142,12 +1222,14 @@ const App = (function() {
                           '</button>' +
                         '</div>' +
                       '</div>' +
+
+                      // ── Abschnitt 4: Passwort ──
+                      '<div class="user-edit-section-title" style="margin-top:20px">Passwort ändern</div>' +
                       '<div class="form-group">' +
-                        '<label class="form-label">Neues Passwort' +
-                          '<span style="font-size:11px;color:var(--text-muted);text-transform:none;font-weight:400;margin-left:6px">leer lassen = unverändert</span>' +
-                        '</label>' +
-                        '<input class="form-input" id="eu-password-' + id + '" type="password" placeholder="Min. 8 Zeichen" style="max-width:280px">' +
+                        '<input class="form-input" id="eu-password-' + id + '" type="password" placeholder="Neues Passwort (min. 8 Zeichen)" style="max-width:300px">' +
                       '</div>' +
+
+                      // ── Footer ──
                       '<div class="user-edit-footer">' +
                         '<button class="btn btn-secondary" onclick="App.closeEditRow(' + id + ')">Abbrechen</button>' +
                         '<button class="btn btn-primary" onclick="App.updateUser(' + id + ')">' +
@@ -1365,18 +1447,26 @@ const App = (function() {
     }
 
     async function updateUser(id) {
-        var name = document.getElementById('eu-name-' + id);
-        var email = document.getElementById('eu-email-' + id);
-        var role = document.getElementById('eu-role-' + id);
-        var password = document.getElementById('eu-password-' + id);
+        var name     = document.getElementById('eu-name-'       + id);
+        var email    = document.getElementById('eu-email-'      + id);
+        var role     = document.getElementById('eu-role-'       + id);
+        var password = document.getElementById('eu-password-'   + id);
+        var licPlan  = document.getElementById('eu-lic-plan-'   + id);
+        var licStat  = document.getElementById('eu-lic-status-' + id);
+        var licTrial = document.getElementById('eu-lic-trial-'  + id);
+        var licExp   = document.getElementById('eu-lic-expires-'+ id);
+
         if (password && password.value && password.value.length < 8) {
             toast('Passwort muss mindestens 8 Zeichen haben', 'error'); return;
         }
         var body = {
-            name: name ? name.value : '',
-            email: email ? email.value : '',
-            role: role ? role.value : '',
-            sipgate_number: _sipgateNumbers.join(',')
+            name:           name  ? name.value  : '',
+            email:          email ? email.value : '',
+            role:           role  ? role.value  : '',
+            sipgate_number: _sipgateNumbers.join(','),
+            license_plan:   licPlan  ? licPlan.value  : '',
+            license_status: licStat  ? licStat.value  : '',
+            license_expires_at: licExp && licExp.value ? licExp.value : '',
         };
         if (password && password.value) body.password = password.value;
         try {
