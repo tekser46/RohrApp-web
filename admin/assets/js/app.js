@@ -872,11 +872,17 @@ const App = (function() {
 
                             <!-- No Sipgate Panel -->
                             <div id="sipgateNoPanel" style="display:${!hasSipgate ? 'block' : 'none'}">
-                                <div style="padding:24px;background:var(--bg-secondary);border-radius:12px;text-align:center">
-                                    <div style="font-size:40px;margin-bottom:12px">📞</div>
-                                    <div style="font-size:15px;font-weight:700;margin-bottom:8px">Kein Sipgate Konto?</div>
-                                    <p style="font-size:13px;color:var(--text-light);max-width:400px;margin:0 auto 16px">Sipgate ermöglicht VoIP-Telefonie mit automatischer Anrufverfolgung. Die Integration trackt eingehende und ausgehende Anrufe automatisch.</p>
-                                    <a href="https://www.sipgate.de" target="_blank" class="btn btn-primary">Sipgate Konto erstellen →</a>
+                                <div style="padding:24px;background:var(--bg-secondary);border-radius:12px">
+                                    <div style="text-align:center;margin-bottom:20px">
+                                        <div style="font-size:40px;margin-bottom:8px">📞</div>
+                                        <div style="font-size:15px;font-weight:700;margin-bottom:6px">Sie benötigen eine Telefonnummer?</div>
+                                        <p style="font-size:13px;color:var(--text-light);max-width:440px;margin:0 auto">Fordern Sie eine oder mehrere Nummern bei uns an. Wir richten alles für Sie ein — inklusive Anrufverfolgung und Webhook-Integration.</p>
+                                    </div>
+                                    <div style="display:flex;gap:12px;align-items:end;flex-wrap:wrap">
+                                        <div class="form-group" style="margin:0"><label class="form-label">Anzahl Nummern</label><select class="form-select" id="number_count_no"><option>1</option><option>2</option><option>3</option><option>5</option><option>10</option><option>20</option></select></div>
+                                        <div class="form-group" style="margin:0;flex:1;min-width:200px"><label class="form-label">Nachricht (optional)</label><input class="form-input" id="number_message_no" placeholder="z.B. Nummern für Standort Berlin"></div>
+                                        <button class="btn btn-primary" onclick="App.requestNumbersNoSipgate()">📧 Nummer anfragen</button>
+                                    </div>
                                 </div>
                             </div>
 
@@ -1066,6 +1072,18 @@ const App = (function() {
             await api('request-upgrade', { method: 'POST', body: { requested_plan: plan.value, message: msg ? msg.value : '' } });
             toast('Upgrade-Anfrage wurde gesendet! Wir melden uns per E-Mail.', 'success');
             plan.disabled = true;
+            if (msg) msg.disabled = true;
+        } catch (e) { toast(e.message, 'error'); }
+    }
+
+    async function requestNumbersNoSipgate() {
+        var count = document.getElementById('number_count_no');
+        var msg = document.getElementById('number_message_no');
+        if (!count) return;
+        try {
+            await api('request-numbers', { method: 'POST', body: { count: parseInt(count.value), message: (msg ? msg.value : '') + ' [Kein Sipgate Konto]' } });
+            toast('Nummer-Anfrage wurde gesendet! Wir melden uns per E-Mail.', 'success');
+            count.disabled = true;
             if (msg) msg.disabled = true;
         } catch (e) { toast(e.message, 'error'); }
     }
@@ -2031,6 +2049,7 @@ const App = (function() {
         saveProfilePassword: saveProfilePassword,
         requestUpgrade: requestUpgrade,
         requestNumbers: requestNumbers,
+        requestNumbersNoSipgate: requestNumbersNoSipgate,
         updateRequest: updateRequest,
         uploadAvatar: uploadAvatar,
         uploadLogo: uploadLogo,
