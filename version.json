@@ -1,6 +1,7 @@
 {
-    "version": "1.0.0",
+    "version": "1.1.0",
     "name": "RohrApp+",
     "build": "2026-03-24",
-    "channel": "stable"
+    "channel": "stable",
+    "changelog": "iOS App API v1: Bearer token auth, license system, Sipgate webhook, CRM, invoices, APNs, game scores"
 }
