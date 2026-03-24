@@ -1237,3 +1237,140 @@ button { cursor: pointer; font-family: inherit; }
         grid-template-columns: 1fr;
     }
 }
+
+/* ══════════════════════════════════════════
+   USER INLINE EDIT PANEL
+   ══════════════════════════════════════════ */
+.user-edit-row td { padding: 0 !important; border-top: none !important; }
+.user-edit-panel {
+    max-height: 0;
+    overflow: hidden;
+    opacity: 0;
+    transition: max-height 0.38s cubic-bezier(0.4,0,0.2,1), opacity 0.25s ease;
+    background: var(--bg-body);
+    border-top: 2px solid var(--primary);
+    border-bottom: 1px solid var(--border);
+}
+.user-edit-panel.open {
+    max-height: 700px;
+    opacity: 1;
+}
+.user-edit-panel-inner {
+    padding: 20px 24px 20px;
+}
+.user-edit-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 20px;
+}
+.user-edit-header-title {
+    font-weight: 700;
+    font-size: 14px;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+}
+.user-edit-header-title span {
+    color: var(--primary);
+    text-transform: none;
+    font-size: 15px;
+}
+.user-edit-fields {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 16px;
+}
+.user-edit-footer {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+    border-top: 1px solid var(--border);
+    padding-top: 16px;
+    margin-top: 4px;
+}
+
+/* ── Phone Tags ── */
+.phone-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    min-height: 38px;
+    padding: 6px 0;
+    align-items: flex-start;
+}
+.phone-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    background: rgba(0,102,161,0.07);
+    border: 1px solid rgba(0,102,161,0.22);
+    border-radius: 20px;
+    padding: 5px 8px 5px 11px;
+    font-size: 13px;
+    color: var(--primary);
+    font-weight: 500;
+    transition: background 0.15s;
+}
+.phone-tag:hover { background: rgba(0,102,161,0.12); }
+.phone-tag-editing {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    background: var(--bg-card);
+    border: 2px solid var(--primary);
+    border-radius: 20px;
+    padding: 4px 8px 4px 11px;
+    box-shadow: 0 0 0 3px rgba(0,102,161,0.1);
+}
+.phone-tag-editing input {
+    border: none;
+    outline: none;
+    background: transparent;
+    font-size: 13px;
+    color: var(--text-primary);
+    width: 155px;
+    font-family: inherit;
+}
+.phone-tag-btn {
+    width: 22px;
+    height: 22px;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    border: none;
+    border-radius: 50%;
+    cursor: pointer;
+    color: inherit;
+    opacity: 0.55;
+    transition: all 0.15s;
+    flex-shrink: 0;
+}
+.phone-tag-btn:hover { opacity: 1; background: rgba(0,0,0,0.07); }
+.phone-tag-btn.save:hover { color: #059669; background: rgba(5,150,105,0.1); }
+.phone-tag-btn.delete:hover { color: var(--danger); background: rgba(239,68,68,0.1); opacity: 1; }
+.phone-add-row {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    margin-top: 4px;
+}
+.phone-add-row .form-input {
+    max-width: 210px;
+    flex: none;
+}
+.phone-empty-note {
+    color: var(--text-muted);
+    font-size: 13px;
+    padding: 4px 2px;
+}
+
+/* active edit row highlight */
+tr.user-row-active > td:first-child { border-left: 3px solid var(--primary); }
+
+@media (max-width: 768px) {
+    .user-edit-fields { grid-template-columns: 1fr 1fr; }
+}
