@@ -55,19 +55,21 @@ try {
 
         // ── Customers ──
         $pdo->exec("CREATE TABLE customers (
-            id INT AUTO_INCREMENT PRIMARY KEY,
-            name VARCHAR(200) NOT NULL,
-            company VARCHAR(200),
-            phone VARCHAR(50),
-            email VARCHAR(200),
-            address VARCHAR(300),
-            city VARCHAR(100),
-            zip VARCHAR(20),
-            notes TEXT,
-            source ENUM('call','email','chat','manual','website') DEFAULT 'manual',
-            status ENUM('active','inactive','blocked') DEFAULT 'active',
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            id          INT AUTO_INCREMENT PRIMARY KEY,
+            name        VARCHAR(200) NOT NULL,
+            company     VARCHAR(200),
+            phone       VARCHAR(50),
+            email       VARCHAR(200),
+            address     VARCHAR(300),
+            city        VARCHAR(100),
+            zip         VARCHAR(20),
+            notes       TEXT,
+            work_type   VARCHAR(200),
+            appointment DATETIME,
+            source      ENUM('call','email','chat','manual','website') DEFAULT 'manual',
+            status      ENUM('active','inactive','blocked') DEFAULT 'active',
+            created_at  DATETIME DEFAULT CURRENT_TIMESTAMP,
+            updated_at  DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
             INDEX idx_phone (phone),
             INDEX idx_email (email),
             INDEX idx_status (status)
@@ -187,6 +189,122 @@ try {
             INDEX idx_ip (ip_address)
         ) ENGINE=InnoDB");
 
+        // ── App Tokens (iOS Bearer Auth) ──
+        $pdo->exec("CREATE TABLE app_tokens (
+            id          INT AUTO_INCREMENT PRIMARY KEY,
+            user_id     INT NOT NULL,
+            token       VARCHAR(128) UNIQUE NOT NULL,
+            device_name VARCHAR(200),
+            device_os   VARCHAR(50),
+            last_used   DATETIME,
+            expires_at  DATETIME,
+            created_at  DATETIME DEFAULT CURRENT_TIMESTAMP,
+            INDEX idx_token (token),
+            INDEX idx_user (user_id),
+            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+        ) ENGINE=InnoDB");
+
+        // ── Licenses ──
+        $pdo->exec("CREATE TABLE licenses (
+            id           INT AUTO_INCREMENT PRIMARY KEY,
+            user_id      INT NOT NULL UNIQUE,
+            plan         ENUM('starter','professional','enterprise') DEFAULT 'starter',
+            status       ENUM('active','expired','suspended','trial') DEFAULT 'trial',
+            trial_ends   DATETIME,
+            expires_at   DATETIME,
+            max_users    INT DEFAULT 1,
+            features     JSON,
+            created_at   DATETIME DEFAULT CURRENT_TIMESTAMP,
+            updated_at   DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+        ) ENGINE=InnoDB");
+
+        // ── Invoices ──
+        $pdo->exec("CREATE TABLE invoices (
+            id              INT AUTO_INCREMENT PRIMARY KEY,
+            invoice_number  VARCHAR(50) UNIQUE NOT NULL,
+            customer_id     INT NULL,
+            user_id         INT NOT NULL,
+            status          ENUM('draft','sent','paid','storniert') DEFAULT 'draft',
+            customer_name   VARCHAR(200),
+            customer_address TEXT,
+            customer_email  VARCHAR(200),
+            subtotal        DECIMAL(10,2) DEFAULT 0,
+            tax_rate        DECIMAL(5,2) DEFAULT 19.00,
+            tax_amount      DECIMAL(10,2) DEFAULT 0,
+            total           DECIMAL(10,2) DEFAULT 0,
+            notes           TEXT,
+            due_date        DATE,
+            paid_at         DATETIME,
+            sent_at         DATETIME,
+            created_at      DATETIME DEFAULT CURRENT_TIMESTAMP,
+            updated_at      DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            INDEX idx_status (status),
+            INDEX idx_customer (customer_id),
+            FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE SET NULL,
+            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+        ) ENGINE=InnoDB");
+
+        // ── Invoice Items ──
+        $pdo->exec("CREATE TABLE invoice_items (
+            id          INT AUTO_INCREMENT PRIMARY KEY,
+            invoice_id  INT NOT NULL,
+            description TEXT NOT NULL,
+            quantity    DECIMAL(10,2) DEFAULT 1,
+            unit_price  DECIMAL(10,2) DEFAULT 0,
+            total       DECIMAL(10,2) DEFAULT 0,
+            sort_order  INT DEFAULT 0,
+            FOREIGN KEY (invoice_id) REFERENCES invoices(id) ON DELETE CASCADE
+        ) ENGINE=InnoDB");
+
+        // ── APNs Devices ──
+        $pdo->exec("CREATE TABLE apns_devices (
+            id           INT AUTO_INCREMENT PRIMARY KEY,
+            user_id      INT NOT NULL,
+            device_token VARCHAR(300) NOT NULL,
+            bundle_id    VARCHAR(200) DEFAULT 'de.sahinkurt.rohrexpert',
+            environment  ENUM('sandbox','production') DEFAULT 'production',
+            created_at   DATETIME DEFAULT CURRENT_TIMESTAMP,
+            updated_at   DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            UNIQUE KEY unique_device (user_id, device_token),
+            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+        ) ENGINE=InnoDB");
+
+        // ── Game Scores ──
+        $pdo->exec("CREATE TABLE game_scores (
+            id         INT AUTO_INCREMENT PRIMARY KEY,
+            user_id    INT NOT NULL,
+            game       VARCHAR(50) NOT NULL,
+            score      INT NOT NULL DEFAULT 0,
+            level      INT DEFAULT 1,
+            duration   INT DEFAULT 0,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            INDEX idx_game_score (game, score DESC),
+            INDEX idx_user (user_id),
+            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+        ) ENGINE=InnoDB");
+
+        // ── Sipgate Calls (extended) ──
+        $pdo->exec("CREATE TABLE sipgate_calls (
+            id          INT AUTO_INCREMENT PRIMARY KEY,
+            call_id     VARCHAR(100) UNIQUE,
+            direction   ENUM('in','out') DEFAULT 'in',
+            from_number VARCHAR(50),
+            to_number   VARCHAR(50),
+            caller_name VARCHAR(200),
+            duration    INT DEFAULT 0,
+            status      ENUM('new','answered','missed','rejected','irrelevant') DEFAULT 'new',
+            customer_id INT NULL,
+            note        TEXT,
+            answered_at DATETIME,
+            ended_at    DATETIME,
+            created_at  DATETIME DEFAULT CURRENT_TIMESTAMP,
+            INDEX idx_call_id (call_id),
+            INDEX idx_status (status),
+            INDEX idx_customer (customer_id),
+            FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE SET NULL
+        ) ENGINE=InnoDB");
+
         // ── Default Users (one per role) ──
         $pdo->prepare("INSERT INTO users (username, password_hash, role, name, email) VALUES (?, ?, 'admin', ?, ?)")
            ->execute(['admin', password_hash('admin123', PASSWORD_BCRYPT), 'Administrator', 'admin@rohrapp.de']);
@@ -196,6 +314,22 @@ try {
            ->execute(['professional', password_hash('demo123', PASSWORD_BCRYPT), 'Professional User', 'professional@demo.de']);
         $pdo->prepare("INSERT INTO users (username, password_hash, role, name, email) VALUES (?, ?, 'starter', ?, ?)")
            ->execute(['starter', password_hash('demo123', PASSWORD_BCRYPT), 'Starter User', 'starter@demo.de']);
+
+        // ── Default Licenses ──
+        $licenseFeatures = [
+            'starter'      => ['calls'=>true,'customers'=>true,'invoices'=>false,'ai_chat'=>false,'sipgate'=>false,'push'=>false,'games'=>true,'max_invoices'=>0],
+            'professional' => ['calls'=>true,'customers'=>true,'invoices'=>true,'ai_chat'=>true,'sipgate'=>true,'push'=>true,'games'=>true,'max_invoices'=>50],
+            'enterprise'   => ['calls'=>true,'customers'=>true,'invoices'=>true,'ai_chat'=>true,'sipgate'=>true,'push'=>true,'games'=>true,'max_invoices'=>-1],
+        ];
+        $licenseRoleMap = ['admin'=>'enterprise','enterprise'=>'enterprise','professional'=>'professional','starter'=>'starter'];
+        $allUsers = $pdo->query("SELECT id, role FROM users")->fetchAll();
+        foreach ($allUsers as $u) {
+            $plan = $licenseRoleMap[$u['role']] ?? 'starter';
+            $features = json_encode($licenseFeatures[$plan]);
+            $trialEnds = date('Y-m-d H:i:s', strtotime('+30 days'));
+            $pdo->prepare("INSERT INTO licenses (user_id, plan, status, trial_ends, features) VALUES (?, ?, 'trial', ?, ?)")
+               ->execute([$u['id'], $plan, $trialEnds, $features]);
+        }
 
         // ── Default Settings ──
         $defaults = [
@@ -329,7 +463,7 @@ try {
     <div class="box info">
         <strong>Was wurde installiert:</strong>
         <ul class="checklist">
-            <li>9 Datenbanktabellen (MySQL/InnoDB)</li>
+            <li>16 Datenbanktabellen (MySQL/InnoDB)</li>
             <li>Admin-Benutzer erstellt</li>
             <li>5 Demo-Kunden</li>
             <li>6 Demo-Anrufe</li>
