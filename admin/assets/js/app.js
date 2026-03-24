@@ -817,9 +817,87 @@ const App = (function() {
                             <button class="btn btn-primary" onclick="App.changePassword()">Passwort ändern</button>
                         </div>
                     </div>
+                    ${hasAccess('users') ? '<div class="card" id="updateCard"><div class="card-header"><span class="card-title">System-Update</span></div><div class="card-body" id="updateBody"><div class="spinner" style="margin:20px auto"></div></div></div>' : ''}
                 </div>
             `;
+            // Auto-check for updates if admin
+            if (hasAccess('users')) {
+                checkForUpdate();
+            }
         } catch (e) { toast(e.message, 'error'); }
+    }
+
+    async function checkForUpdate() {
+        var body = document.getElementById('updateBody');
+        if (!body) return;
+        try {
+            var data = await api('check-update');
+            if (data.update_available) {
+                body.innerHTML = `
+                    <div style="display:flex;align-items:center;gap:16px;margin-bottom:16px">
+                        <div style="width:48px;height:48px;border-radius:12px;background:rgba(16,185,129,0.1);display:flex;align-items:center;justify-content:center">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                        </div>
+                        <div>
+                            <div style="font-size:15px;font-weight:700;color:var(--success)">Update verfügbar!</div>
+                            <div style="font-size:13px;color:var(--text-light)">Version <strong>${esc(data.local)}</strong> → <strong>${esc(data.remote)}</strong> (${esc(data.build)})</div>
+                        </div>
+                    </div>
+                    <button class="btn btn-primary" id="doUpdateBtn" onclick="App.doUpdate()">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                        Jetzt aktualisieren
+                    </button>
+                `;
+            } else {
+                body.innerHTML = `
+                    <div style="display:flex;align-items:center;gap:16px">
+                        <div style="width:48px;height:48px;border-radius:12px;background:rgba(16,185,129,0.1);display:flex;align-items:center;justify-content:center">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                        </div>
+                        <div>
+                            <div style="font-size:15px;font-weight:700">System ist aktuell</div>
+                            <div style="font-size:13px;color:var(--text-light)">Version <strong>${esc(data.local)}</strong> — ${esc(data.channel)}</div>
+                        </div>
+                    </div>
+                    <button class="btn btn-secondary btn-sm" style="margin-top:14px" onclick="App.checkForUpdate()">Erneut prüfen</button>
+                `;
+            }
+        } catch (e) {
+            body.innerHTML = '<div style="color:var(--danger);font-size:13px">Update-Check fehlgeschlagen: ' + esc(e.message) + '</div><button class="btn btn-secondary btn-sm" style="margin-top:10px" onclick="App.checkForUpdate()">Erneut prüfen</button>';
+        }
+    }
+
+    async function doUpdate() {
+        var btn = document.getElementById('doUpdateBtn');
+        if (btn) {
+            btn.disabled = true;
+            btn.innerHTML = '<div class="spinner" style="width:16px;height:16px;margin:0"></div> Wird aktualisiert...';
+        }
+        try {
+            var data = await api('do-update', { method: 'POST' });
+            var body = document.getElementById('updateBody');
+            if (body) {
+                body.innerHTML = `
+                    <div style="display:flex;align-items:center;gap:16px;margin-bottom:16px">
+                        <div style="width:48px;height:48px;border-radius:12px;background:rgba(16,185,129,0.1);display:flex;align-items:center;justify-content:center">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                        </div>
+                        <div>
+                            <div style="font-size:15px;font-weight:700;color:var(--success)">Update erfolgreich!</div>
+                            <div style="font-size:13px;color:var(--text-light)">Version <strong>${esc(data.version)}</strong> — ${data.files_updated} Dateien aktualisiert</div>
+                        </div>
+                    </div>
+                    <button class="btn btn-primary btn-sm" onclick="location.reload()">Seite neu laden</button>
+                `;
+            }
+            toast('Update auf v' + data.version + ' erfolgreich!', 'success');
+        } catch (e) {
+            toast('Update fehlgeschlagen: ' + e.message, 'error');
+            if (btn) {
+                btn.disabled = false;
+                btn.innerHTML = 'Erneut versuchen';
+            }
+        }
     }
 
     async function saveSettings() {
@@ -1159,6 +1237,8 @@ const App = (function() {
         updateUser: updateUser,
         deleteUser: deleteUser,
         hasAccess: hasAccess,
+        checkForUpdate: checkForUpdate,
+        doUpdate: doUpdate,
         toast: toast
     };
 

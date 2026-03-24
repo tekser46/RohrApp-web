@@ -630,6 +630,175 @@ switch ($action) {
         jsonResponse(['role' => $role, 'permissions' => $perms]);
         break;
 
+    // ════════════════════════════════════════
+    // VERSION & AUTO-UPDATE
+    // ════════════════════════════════════════
+    case 'version':
+        requireAuth();
+        $localVersion = '?.?.?';
+        $versionFile = dirname(__DIR__) . '/version.json';
+        if (file_exists($versionFile)) {
+            $v = json_decode(file_get_contents($versionFile), true);
+            $localVersion = $v['version'] ?? '?.?.?';
+        }
+        jsonResponse(['local' => $localVersion]);
+        break;
+
+    case 'check-update':
+        requireRole('admin');
+        $localVersion = '0.0.0';
+        $versionFile = dirname(__DIR__) . '/version.json';
+        if (file_exists($versionFile)) {
+            $v = json_decode(file_get_contents($versionFile), true);
+            $localVersion = $v['version'] ?? '0.0.0';
+        }
+
+        // Fetch remote version.json from GitHub
+        $remoteUrl = 'https://raw.githubusercontent.com/tekser46/RohrApp-web/main/version.json';
+        $ch = curl_init($remoteUrl);
+        curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_TIMEOUT => 10,
+            CURLOPT_SSL_VERIFYPEER => true,
+            CURLOPT_USERAGENT => 'RohrApp-Updater/1.0',
+        ]);
+        $response = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+
+        if ($httpCode !== 200 || !$response) {
+            jsonResponse(['error' => 'Konnte Remote-Version nicht abrufen', 'local' => $localVersion], 502);
+        }
+
+        $remote = json_decode($response, true);
+        $remoteVersion = $remote['version'] ?? '0.0.0';
+        $updateAvailable = version_compare($remoteVersion, $localVersion, '>');
+
+        jsonResponse([
+            'local' => $localVersion,
+            'remote' => $remoteVersion,
+            'update_available' => $updateAvailable,
+            'build' => $remote['build'] ?? '',
+            'channel' => $remote['channel'] ?? 'stable',
+        ]);
+        break;
+
+    case 'do-update':
+        requireRole('admin');
+        if ($method !== 'POST') jsonResponse(['error' => 'POST erforderlich'], 405);
+
+        $rootDir = dirname(__DIR__);
+        $tmpFile = $rootDir . '/data/update.zip';
+        $tmpDir  = $rootDir . '/data/update_tmp';
+
+        // 1. Download zip from GitHub
+        $zipUrl = 'https://github.com/tekser46/RohrApp-web/archive/refs/heads/main.zip';
+        $ch = curl_init($zipUrl);
+        curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_FOLLOWLOCATION => true,
+            CURLOPT_TIMEOUT => 60,
+            CURLOPT_SSL_VERIFYPEER => true,
+            CURLOPT_USERAGENT => 'RohrApp-Updater/1.0',
+        ]);
+        $zipData = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+
+        if ($httpCode !== 200 || !$zipData) {
+            jsonResponse(['error' => 'Download fehlgeschlagen (HTTP ' . $httpCode . ')'], 502);
+        }
+
+        // Ensure data directory exists
+        if (!is_dir($rootDir . '/data')) mkdir($rootDir . '/data', 0755, true);
+
+        file_put_contents($tmpFile, $zipData);
+
+        // 2. Extract zip
+        $zip = new ZipArchive();
+        if ($zip->open($tmpFile) !== true) {
+            unlink($tmpFile);
+            jsonResponse(['error' => 'ZIP-Datei konnte nicht geöffnet werden'], 500);
+        }
+
+        // Clean old tmp
+        if (is_dir($tmpDir)) {
+            $it = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($tmpDir, RecursiveDirectoryIterator::SKIP_DOTS), RecursiveIteratorIterator::CHILD_FIRST);
+            foreach ($it as $f) { $f->isDir() ? rmdir($f->getRealPath()) : unlink($f->getRealPath()); }
+            rmdir($tmpDir);
+        }
+
+        $zip->extractTo($tmpDir);
+        $zip->close();
+
+        // 3. Find extracted folder (GitHub adds "RohrApp-web-main/" prefix)
+        $extractedDir = null;
+        foreach (scandir($tmpDir) as $d) {
+            if ($d !== '.' && $d !== '..' && is_dir($tmpDir . '/' . $d)) {
+                $extractedDir = $tmpDir . '/' . $d;
+                break;
+            }
+        }
+
+        if (!$extractedDir) {
+            unlink($tmpFile);
+            jsonResponse(['error' => 'Extrahierter Ordner nicht gefunden'], 500);
+        }
+
+        // 4. Copy files (skip: data/, admin/config.php, .git/)
+        $skipPaths = ['data', '.git', '.gitignore'];
+        $skipFiles = ['admin/config.php'];
+        $updated = [];
+
+        function copyUpdateFiles($src, $dst, $baseSrc, &$updated, $skipPaths, $skipFiles) {
+            if (!is_dir($dst)) mkdir($dst, 0755, true);
+            $dir = opendir($src);
+            while (($file = readdir($dir)) !== false) {
+                if ($file === '.' || $file === '..') continue;
+                $srcPath = $src . '/' . $file;
+                $dstPath = $dst . '/' . $file;
+                $relPath = ltrim(str_replace($baseSrc, '', $srcPath), '/\\');
+
+                // Skip protected paths
+                $skip = false;
+                foreach ($skipPaths as $sp) {
+                    if (strpos($relPath, $sp) === 0) { $skip = true; break; }
+                }
+                if ($skip || in_array($relPath, $skipFiles)) continue;
+
+                if (is_dir($srcPath)) {
+                    copyUpdateFiles($srcPath, $dstPath, $baseSrc, $updated, $skipPaths, $skipFiles);
+                } else {
+                    copy($srcPath, $dstPath);
+                    $updated[] = $relPath;
+                }
+            }
+            closedir($dir);
+        }
+
+        copyUpdateFiles($extractedDir, $rootDir, $extractedDir, $updated, $skipPaths, $skipFiles);
+
+        // 5. Cleanup
+        unlink($tmpFile);
+        $it = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($tmpDir, RecursiveDirectoryIterator::SKIP_DOTS), RecursiveIteratorIterator::CHILD_FIRST);
+        foreach ($it as $f) { $f->isDir() ? rmdir($f->getRealPath()) : unlink($f->getRealPath()); }
+        rmdir($tmpDir);
+
+        // 6. Read new version
+        $newVersion = '?.?.?';
+        if (file_exists($rootDir . '/version.json')) {
+            $v = json_decode(file_get_contents($rootDir . '/version.json'), true);
+            $newVersion = $v['version'] ?? '?.?.?';
+        }
+
+        jsonResponse([
+            'success' => true,
+            'version' => $newVersion,
+            'files_updated' => count($updated),
+            'updated_files' => array_slice($updated, 0, 20),
+        ]);
+        break;
+
     default:
         jsonResponse(['error' => 'Unbekannte Aktion: ' . $action], 404);
 }
