@@ -1,0 +1,1000 @@
+/**
+ * RohrApp+ — Main Application
+ * SPA Router, State Management, Module Loading
+ */
+const App = (function() {
+    'use strict';
+
+    let currentPage = '';
+    let dashboardData = null;
+
+    // ── API Helper ──
+    async function api(action, options = {}) {
+        const method = options.method || 'GET';
+        const params = options.params ? '&' + new URLSearchParams(options.params) : '';
+        const url = 'api.php?action=' + action + params;
+        const fetchOpts = { method, headers: {} };
+
+        if (options.body) {
+            fetchOpts.headers['Content-Type'] = 'application/json';
+            fetchOpts.body = JSON.stringify(options.body);
+        }
+
+        const res = await fetch(url, fetchOpts);
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'API Fehler');
+        return data;
+    }
+
+    // ── Toast Notifications ──
+    function toast(message, type = 'info') {
+        let container = document.querySelector('.toast-container');
+        if (!container) {
+            container = document.createElement('div');
+            container.className = 'toast-container';
+            document.body.appendChild(container);
+        }
+        const el = document.createElement('div');
+        el.className = 'toast ' + type;
+        el.innerHTML = '<span>' + esc(message) + '</span>';
+        container.appendChild(el);
+        setTimeout(function() {
+            el.style.opacity = '0';
+            el.style.transform = 'translateX(40px)';
+            setTimeout(function() { el.remove(); }, 300);
+        }, 3500);
+    }
+
+    function esc(s) {
+        var d = document.createElement('div');
+        d.textContent = s;
+        return d.innerHTML;
+    }
+
+    // ── Router ──
+    function navigate(page) {
+        if (page === currentPage) return;
+        currentPage = page;
+
+        // Update sidebar active state
+        document.querySelectorAll('.nav-item').forEach(function(el) {
+            el.classList.toggle('active', el.dataset.page === page);
+        });
+
+        // Update topbar title
+        var titles = {
+            dashboard: 'Dashboard', calls: 'Anrufe', emails: 'E-Mails',
+            messages: 'Nachrichten', chat: 'Live Chat', customers: 'Kunden',
+            games: 'Spiele', settings: 'Einstellungen'
+        };
+        var tb = document.getElementById('topbarTitle');
+        if (tb) tb.textContent = titles[page] || page;
+
+        // Close mobile sidebar
+        closeMobileSidebar();
+
+        // Load page
+        var content = document.getElementById('pageContent');
+        content.innerHTML = '<div class="loading-page"><div class="spinner"></div></div>';
+
+        switch (page) {
+            case 'dashboard': renderDashboard(); break;
+            case 'calls': renderCalls(); break;
+            case 'emails': renderEmails(); break;
+            case 'messages': renderMessages(); break;
+            case 'chat': renderChat(); break;
+            case 'customers': renderCustomers(); break;
+            case 'games': renderGames(); break;
+            case 'settings': renderSettings(); break;
+            default: renderDashboard();
+        }
+    }
+
+    // ── Mobile Sidebar ──
+    function closeMobileSidebar() {
+        document.getElementById('sidebar').classList.remove('open');
+        document.getElementById('sidebarOverlay').classList.remove('show');
+    }
+
+    // ══════════════════════════════════════
+    // DASHBOARD
+    // ══════════════════════════════════════
+    async function renderDashboard() {
+        try {
+            var data = await api('dashboard');
+            dashboardData = data;
+            var c = document.getElementById('pageContent');
+            c.innerHTML = `
+                <div class="page-header">
+                    <div>
+                        <h1 class="page-title">Dashboard</h1>
+                        <p class="page-subtitle">Willkommen zurück, ${esc(window.ROHRAPP_USER.name || window.ROHRAPP_USER.username)}</p>
+                    </div>
+                </div>
+
+                <div class="stats-grid">
+                    <div class="stat-card" onclick="App.go('calls')">
+                        <div class="stat-icon calls">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6A19.79 19.79 0 0 1 2.12 4.11 2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+                        </div>
+                        <div class="stat-info">
+                            <div class="stat-value">${data.missed_calls}</div>
+                            <div class="stat-label">Verpasste Anrufe heute</div>
+                        </div>
+                    </div>
+                    <div class="stat-card" onclick="App.go('emails')">
+                        <div class="stat-icon emails">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+                        </div>
+                        <div class="stat-info">
+                            <div class="stat-value">${data.unread_emails}</div>
+                            <div class="stat-label">Ungelesene E-Mails</div>
+                        </div>
+                    </div>
+                    <div class="stat-card" onclick="App.go('messages')">
+                        <div class="stat-icon messages">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                        </div>
+                        <div class="stat-info">
+                            <div class="stat-value">${data.unread_messages}</div>
+                            <div class="stat-label">Ungelesene Nachrichten</div>
+                        </div>
+                    </div>
+                    <div class="stat-card" onclick="App.go('chat')">
+                        <div class="stat-icon chats">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
+                        </div>
+                        <div class="stat-info">
+                            <div class="stat-value">${data.active_chats}</div>
+                            <div class="stat-label">Aktive Chats</div>
+                        </div>
+                    </div>
+                    <div class="stat-card" onclick="App.go('customers')">
+                        <div class="stat-icon customers">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+                        </div>
+                        <div class="stat-info">
+                            <div class="stat-value">${data.total_customers}</div>
+                            <div class="stat-label">Kunden gesamt</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="display:grid;grid-template-columns:1.5fr 1fr;gap:20px">
+                    <div class="card">
+                        <div class="card-header">
+                            <span class="card-title">Anrufe diese Woche</span>
+                            <div style="display:flex;gap:12px;font-size:11px">
+                                <span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:10px;background:var(--success);border-radius:2px;display:inline-block"></span> Angenommen</span>
+                                <span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:10px;background:var(--danger);border-radius:2px;display:inline-block"></span> Verpasst</span>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <div class="chart-container">${renderChart(data.week)}</div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header">
+                            <span class="card-title">Letzte Aktivität</span>
+                        </div>
+                        <div class="card-body" style="padding:8px 20px">
+                            <ul class="activity-list">${renderActivity(data.recent)}</ul>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            // Update badges
+            setBadge('calls', data.missed_calls);
+            setBadge('emails', data.unread_emails);
+            setBadge('messages', data.unread_messages);
+            setBadge('chats', data.active_chats);
+
+        } catch (e) {
+            toast(e.message, 'error');
+        }
+    }
+
+    function renderChart(week) {
+        var maxVal = 1;
+        week.forEach(function(d) { maxVal = Math.max(maxVal, d.answered + d.missed); });
+        var html = '';
+        week.forEach(function(d) {
+            var aH = Math.max(2, (d.answered / maxVal) * 140);
+            var mH = Math.max(2, (d.missed / maxVal) * 140);
+            if (!d.answered && !d.missed) { aH = 2; mH = 2; }
+            html += '<div class="chart-bar-group">' +
+                '<div class="chart-bars">' +
+                '<div class="chart-bar answered" style="height:' + aH + 'px" title="' + d.answered + ' angenommen"></div>' +
+                '<div class="chart-bar missed" style="height:' + mH + 'px" title="' + d.missed + ' verpasst"></div>' +
+                '</div>' +
+                '<span class="chart-label">' + d.label + '</span>' +
+                '</div>';
+        });
+        return html;
+    }
+
+    function renderActivity(recent) {
+        if (!recent || !recent.length) return '<li class="activity-item"><span style="color:var(--text-muted)">Keine Aktivität</span></li>';
+        var html = '';
+        recent.slice(0, 6).forEach(function(r) {
+            var icon = r.type === 'call' ? 'call' : r.type === 'email' ? 'email' : 'message';
+            var svg = r.type === 'call'
+                ? '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72"/></svg>'
+                : r.type === 'email'
+                    ? '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>'
+                    : '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>';
+            var time = timeAgo(r.created_at);
+            html += '<li class="activity-item">' +
+                '<div class="activity-icon ' + icon + '">' + svg + '</div>' +
+                '<div class="activity-text"><strong>' + esc(r.title || 'Unbekannt') + '</strong> — ' + esc(r.detail || '') + '</div>' +
+                '<span class="activity-time">' + time + '</span></li>';
+        });
+        return html;
+    }
+
+    function setBadge(id, count) {
+        var el = document.getElementById('badge-' + id);
+        if (!el) return;
+        if (count > 0) {
+            el.textContent = count;
+            el.classList.add('show');
+        } else {
+            el.classList.remove('show');
+        }
+    }
+
+    // ══════════════════════════════════════
+    // CALLS
+    // ══════════════════════════════════════
+    async function renderCalls() {
+        try {
+            var data = await api('calls');
+            var c = document.getElementById('pageContent');
+            c.innerHTML = `
+                <div class="page-header">
+                    <div>
+                        <h1 class="page-title">Anrufe</h1>
+                        <p class="page-subtitle">${data.total} Anrufe gesamt</p>
+                    </div>
+                    <button class="btn btn-primary" onclick="App.showAddCall()">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                        Neuer Anruf
+                    </button>
+                </div>
+                <div class="card">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Status</th>
+                                <th>Anrufer</th>
+                                <th>Telefon</th>
+                                <th>Richtung</th>
+                                <th>Dauer</th>
+                                <th>Notizen</th>
+                                <th>Datum</th>
+                            </tr>
+                        </thead>
+                        <tbody>${renderCallRows(data.calls)}</tbody>
+                    </table>
+                </div>
+            `;
+        } catch (e) { toast(e.message, 'error'); }
+    }
+
+    function renderCallRows(calls) {
+        if (!calls.length) return '<tr><td colspan="7" style="text-align:center;padding:40px;color:var(--text-muted)">Keine Anrufe vorhanden</td></tr>';
+        return calls.map(function(c) {
+            var statusBadge = c.status === 'answered'
+                ? '<span class="badge badge-success">Angenommen</span>'
+                : c.status === 'missed'
+                    ? '<span class="badge badge-danger">Verpasst</span>'
+                    : '<span class="badge badge-muted">' + esc(c.status) + '</span>';
+            var dir = c.direction === 'inbound' ? '&#8592; Eingehend' : '&#8594; Ausgehend';
+            var dur = c.duration > 0 ? Math.floor(c.duration / 60) + ':' + String(c.duration % 60).padStart(2, '0') : '-';
+            return '<tr>' +
+                '<td>' + statusBadge + '</td>' +
+                '<td style="font-weight:500">' + esc(c.caller_name || c.customer_name || 'Unbekannt') + '</td>' +
+                '<td style="font-family:var(--font-mono);font-size:12px">' + esc(c.phone_number) + '</td>' +
+                '<td>' + dir + '</td>' +
+                '<td style="font-family:var(--font-mono)">' + dur + '</td>' +
+                '<td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + esc(c.notes || '-') + '</td>' +
+                '<td style="white-space:nowrap">' + formatDate(c.created_at) + '</td>' +
+                '</tr>';
+        }).join('');
+    }
+
+    // ══════════════════════════════════════
+    // EMAILS
+    // ══════════════════════════════════════
+    async function renderEmails() {
+        try {
+            var data = await api('emails');
+            var c = document.getElementById('pageContent');
+            c.innerHTML = `
+                <div class="page-header">
+                    <div>
+                        <h1 class="page-title">E-Mails</h1>
+                        <p class="page-subtitle">${data.total} E-Mails</p>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="tabs">
+                        <button class="tab active" data-filter="all">Alle</button>
+                        <button class="tab" data-filter="unread">Ungelesen</button>
+                        <button class="tab" data-filter="starred">Markiert</button>
+                    </div>
+                    <div id="emailList">${renderEmailList(data.emails)}</div>
+                </div>
+            `;
+        } catch (e) { toast(e.message, 'error'); }
+    }
+
+    function renderEmailList(emails) {
+        if (!emails.length) return '<div class="empty-state"><p>Keine E-Mails</p></div>';
+        return emails.map(function(e) {
+            var cls = e.status === 'unread' ? ' unread' : '';
+            var starCls = e.is_starred ? ' starred' : '';
+            return '<div class="email-list-item' + cls + '" onclick="App.viewEmail(' + e.id + ')">' +
+                '<button class="email-star' + starCls + '" onclick="event.stopPropagation();App.toggleStar(' + e.id + ',' + (e.is_starred ? 0 : 1) + ')">&#9733;</button>' +
+                '<span class="email-from">' + esc(e.customer_name || e.from_address) + '</span>' +
+                '<div class="email-content"><span class="email-subject">' + esc(e.subject) + '</span>' +
+                '<span class="email-preview"> — ' + esc((e.body || '').substring(0, 80)) + '</span></div>' +
+                '<span class="email-date">' + formatDate(e.created_at) + '</span></div>';
+        }).join('');
+    }
+
+    async function viewEmail(id) {
+        try {
+            var data = await api('email', { params: { id: id } });
+            showModal('E-Mail', `
+                <div style="margin-bottom:16px">
+                    <div style="font-size:11px;color:var(--text-muted);margin-bottom:4px">Von: ${esc(data.from_address)}</div>
+                    <div style="font-size:11px;color:var(--text-muted);margin-bottom:8px">An: ${esc(data.to_address)}</div>
+                    <div style="font-size:16px;font-weight:600;margin-bottom:16px">${esc(data.subject)}</div>
+                    <div style="white-space:pre-wrap;font-size:13px;line-height:1.7;color:var(--text-secondary)">${esc(data.body)}</div>
+                </div>
+            `);
+        } catch (e) { toast(e.message, 'error'); }
+    }
+
+    async function toggleStar(id, val) {
+        try {
+            await api('email', { method: 'POST', params: { id: id }, body: { is_starred: val } });
+            renderEmails();
+        } catch (e) { toast(e.message, 'error'); }
+    }
+
+    // ══════════════════════════════════════
+    // MESSAGES
+    // ══════════════════════════════════════
+    async function renderMessages() {
+        try {
+            var data = await api('messages');
+            var c = document.getElementById('pageContent');
+            c.innerHTML = `
+                <div class="page-header">
+                    <div>
+                        <h1 class="page-title">Nachrichten</h1>
+                        <p class="page-subtitle">${data.messages.length} Nachrichten</p>
+                    </div>
+                </div>
+                <div class="card">
+                    <table class="data-table">
+                        <thead><tr><th>Status</th><th>Absender</th><th>Kanal</th><th>Nachricht</th><th>Datum</th></tr></thead>
+                        <tbody>${renderMessageRows(data.messages)}</tbody>
+                    </table>
+                </div>
+            `;
+        } catch (e) { toast(e.message, 'error'); }
+    }
+
+    function renderMessageRows(msgs) {
+        if (!msgs.length) return '<tr><td colspan="5" style="text-align:center;padding:40px;color:var(--text-muted)">Keine Nachrichten</td></tr>';
+        return msgs.map(function(m) {
+            var statusBadge = m.status === 'unread'
+                ? '<span class="badge badge-info">Neu</span>'
+                : '<span class="badge badge-muted">Gelesen</span>';
+            var channelBadge = {
+                sms: '<span class="badge badge-warning">SMS</span>',
+                whatsapp: '<span class="badge badge-success">WhatsApp</span>',
+                contact_form: '<span class="badge badge-info">Formular</span>'
+            }[m.channel] || '<span class="badge badge-muted">' + esc(m.channel) + '</span>';
+            return '<tr>' +
+                '<td>' + statusBadge + '</td>' +
+                '<td style="font-weight:500">' + esc(m.sender_name || m.customer_name || 'Unbekannt') + '</td>' +
+                '<td>' + channelBadge + '</td>' +
+                '<td style="max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + esc(m.content) + '</td>' +
+                '<td style="white-space:nowrap">' + formatDate(m.created_at) + '</td></tr>';
+        }).join('');
+    }
+
+    // ══════════════════════════════════════
+    // CHAT
+    // ══════════════════════════════════════
+    async function renderChat() {
+        try {
+            var data = await api('chats');
+            var c = document.getElementById('pageContent');
+            c.innerHTML = `
+                <div class="page-header">
+                    <h1 class="page-title">Live Chat</h1>
+                </div>
+                <div class="chat-layout">
+                    <div class="chat-sidebar">
+                        <div class="chat-sidebar-header">
+                            <div class="search-input-wrap">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                                <input type="text" class="form-input" placeholder="Chat suchen...">
+                            </div>
+                        </div>
+                        <div class="chat-list">${renderChatList(data.conversations)}</div>
+                    </div>
+                    <div class="chat-main" id="chatMain">
+                        <div class="empty-state" style="margin:auto">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
+                            <p>Chat auswählen um zu beginnen</p>
+                        </div>
+                    </div>
+                </div>
+            `;
+        } catch (e) { toast(e.message, 'error'); }
+    }
+
+    function renderChatList(convs) {
+        if (!convs.length) return '<div class="empty-state" style="padding:30px"><p>Keine Chats</p></div>';
+        return convs.map(function(c) {
+            var initial = (c.visitor_name || '?')[0].toUpperCase();
+            var statusDot = c.status === 'active' ? ' style="box-shadow:0 0 0 2px #fff,0 0 0 4px var(--success)"' : '';
+            return '<div class="chat-list-item" onclick="App.openChat(' + c.id + ')">' +
+                '<div class="chat-avatar"' + statusDot + '>' + initial + '</div>' +
+                '<div class="chat-item-info">' +
+                '<div class="chat-item-name">' + esc(c.visitor_name || 'Besucher') + '</div>' +
+                '<div class="chat-item-preview">' + c.msg_count + ' Nachrichten</div></div></div>';
+        }).join('');
+    }
+
+    async function openChat(id) {
+        try {
+            var data = await api('chat', { params: { id: id } });
+            var main = document.getElementById('chatMain');
+            main.innerHTML = `
+                <div class="chat-header">
+                    <div class="chat-avatar" style="width:36px;height:36px;font-size:13px">B</div>
+                    <div><div style="font-weight:600;font-size:14px">Besucher</div><div style="font-size:11px;color:var(--text-muted)">Aktiv</div></div>
+                </div>
+                <div class="chat-messages" id="chatMessages">${renderChatBubbles(data.messages)}</div>
+                <div class="chat-input-area">
+                    <input type="text" class="form-input" id="chatInput" placeholder="Nachricht eingeben..." onkeydown="if(event.key==='Enter')App.sendChat(${id})">
+                    <button class="btn btn-primary" onclick="App.sendChat(${id})">Senden</button>
+                </div>
+            `;
+            var msgs = document.getElementById('chatMessages');
+            msgs.scrollTop = msgs.scrollHeight;
+        } catch (e) { toast(e.message, 'error'); }
+    }
+
+    function renderChatBubbles(msgs) {
+        return msgs.map(function(m) {
+            var time = formatTime(m.created_at);
+            return '<div class="chat-bubble ' + m.sender + '">' +
+                esc(m.content) +
+                '<div class="chat-bubble-time">' + time + '</div></div>';
+        }).join('');
+    }
+
+    async function sendChat(convId) {
+        var input = document.getElementById('chatInput');
+        var msg = input.value.trim();
+        if (!msg) return;
+        input.value = '';
+        try {
+            await api('chat', { method: 'POST', params: { id: convId }, body: { message: msg, sender: 'agent' } });
+            openChat(convId);
+        } catch (e) { toast(e.message, 'error'); }
+    }
+
+    // ══════════════════════════════════════
+    // CUSTOMERS
+    // ══════════════════════════════════════
+    async function renderCustomers() {
+        try {
+            var data = await api('customers');
+            var c = document.getElementById('pageContent');
+            c.innerHTML = `
+                <div class="page-header">
+                    <div>
+                        <h1 class="page-title">Kunden</h1>
+                        <p class="page-subtitle">${data.total} Kunden</p>
+                    </div>
+                    <div style="display:flex;gap:10px">
+                        <div class="search-input-wrap">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                            <input type="text" class="form-input" placeholder="Suchen..." id="customerSearch" oninput="App.searchCustomers(this.value)">
+                        </div>
+                        <button class="btn btn-primary" onclick="App.showAddCustomer()">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                            Neuer Kunde
+                        </button>
+                    </div>
+                </div>
+                <div class="card">
+                    <table class="data-table">
+                        <thead><tr><th>Name</th><th>Firma</th><th>Telefon</th><th>E-Mail</th><th>Stadt</th><th>Quelle</th><th>Erstellt</th></tr></thead>
+                        <tbody id="customerTableBody">${renderCustomerRows(data.customers)}</tbody>
+                    </table>
+                </div>
+            `;
+        } catch (e) { toast(e.message, 'error'); }
+    }
+
+    function renderCustomerRows(customers) {
+        if (!customers.length) return '<tr><td colspan="7" style="text-align:center;padding:40px;color:var(--text-muted)">Keine Kunden</td></tr>';
+        return customers.map(function(c) {
+            var src = { call: 'Anruf', email: 'E-Mail', chat: 'Chat', manual: 'Manuell' }[c.source] || c.source;
+            return '<tr style="cursor:pointer" onclick="App.viewCustomer(' + c.id + ')">' +
+                '<td style="font-weight:600">' + esc(c.name) + '</td>' +
+                '<td>' + esc(c.company || '-') + '</td>' +
+                '<td style="font-family:var(--font-mono);font-size:12px">' + esc(c.phone || '-') + '</td>' +
+                '<td>' + esc(c.email || '-') + '</td>' +
+                '<td>' + esc(c.city || '-') + '</td>' +
+                '<td><span class="badge badge-muted">' + src + '</span></td>' +
+                '<td style="white-space:nowrap">' + formatDate(c.created_at) + '</td></tr>';
+        }).join('');
+    }
+
+    var searchTimer;
+    async function searchCustomers(q) {
+        clearTimeout(searchTimer);
+        searchTimer = setTimeout(async function() {
+            var data = await api('customers', { params: { q: q } });
+            document.getElementById('customerTableBody').innerHTML = renderCustomerRows(data.customers);
+        }, 300);
+    }
+
+    function showAddCustomer() {
+        showModal('Neuer Kunde', `
+            <form id="addCustomerForm">
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+                    <div class="form-group"><label class="form-label">Name *</label><input class="form-input" name="name" required></div>
+                    <div class="form-group"><label class="form-label">Firma</label><input class="form-input" name="company"></div>
+                    <div class="form-group"><label class="form-label">Telefon</label><input class="form-input" name="phone"></div>
+                    <div class="form-group"><label class="form-label">E-Mail</label><input class="form-input" name="email" type="email"></div>
+                    <div class="form-group"><label class="form-label">Adresse</label><input class="form-input" name="address"></div>
+                    <div class="form-group"><label class="form-label">Stadt</label><input class="form-input" name="city"></div>
+                    <div class="form-group"><label class="form-label">PLZ</label><input class="form-input" name="zip"></div>
+                </div>
+                <div class="form-group"><label class="form-label">Notizen</label><textarea class="form-textarea" name="notes" rows="3"></textarea></div>
+            </form>
+        `, [
+            { label: 'Abbrechen', cls: 'btn-secondary', action: 'closeModal()' },
+            { label: 'Speichern', cls: 'btn-primary', action: 'App.saveCustomer()' }
+        ]);
+    }
+
+    async function saveCustomer() {
+        var form = document.getElementById('addCustomerForm');
+        var fd = new FormData(form);
+        var body = {};
+        fd.forEach(function(v, k) { body[k] = v; });
+        if (!body.name) { toast('Name ist erforderlich', 'error'); return; }
+        try {
+            await api('customers', { method: 'POST', body: body });
+            closeModal();
+            toast('Kunde erstellt', 'success');
+            renderCustomers();
+        } catch (e) { toast(e.message, 'error'); }
+    }
+
+    async function viewCustomer(id) {
+        try {
+            var data = await api('customer', { params: { id: id } });
+            var cu = data.customer;
+            showModal(esc(cu.name), `
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px">
+                    <div><span style="font-size:11px;color:var(--text-muted)">FIRMA</span><div style="font-weight:500">${esc(cu.company || '-')}</div></div>
+                    <div><span style="font-size:11px;color:var(--text-muted)">TELEFON</span><div style="font-family:var(--font-mono)">${esc(cu.phone || '-')}</div></div>
+                    <div><span style="font-size:11px;color:var(--text-muted)">E-MAIL</span><div>${esc(cu.email || '-')}</div></div>
+                    <div><span style="font-size:11px;color:var(--text-muted)">ADRESSE</span><div>${esc([cu.address, cu.zip, cu.city].filter(Boolean).join(', ') || '-')}</div></div>
+                </div>
+                ${cu.notes ? '<div style="background:var(--bg-body);padding:12px;border-radius:8px;font-size:13px;margin-bottom:16px"><strong>Notizen:</strong> ' + esc(cu.notes) + '</div>' : ''}
+                <div style="font-size:12px;color:var(--text-muted)">
+                    <strong>${data.calls.length}</strong> Anrufe &middot;
+                    <strong>${data.emails.length}</strong> E-Mails &middot;
+                    <strong>${data.messages.length}</strong> Nachrichten
+                </div>
+            `);
+        } catch (e) { toast(e.message, 'error'); }
+    }
+
+    // ══════════════════════════════════════
+    // GAMES
+    // ══════════════════════════════════════
+    function renderGames() {
+        var c = document.getElementById('pageContent');
+        c.innerHTML = `
+            <div class="page-header">
+                <h1 class="page-title">Spiele</h1>
+            </div>
+            <div class="games-grid">
+                <div class="game-card" onclick="App.startGame('snake')">
+                    <div class="game-card-icon">&#128013;</div>
+                    <div class="game-card-title">Snake</div>
+                    <div class="game-card-desc">Klassisches Snake-Spiel</div>
+                </div>
+                <div class="game-card" onclick="App.startGame('2048')">
+                    <div class="game-card-icon">&#127922;</div>
+                    <div class="game-card-title">2048</div>
+                    <div class="game-card-desc">Zahlen-Puzzle</div>
+                </div>
+                <div class="game-card" onclick="App.startGame('tetris')">
+                    <div class="game-card-icon">&#129513;</div>
+                    <div class="game-card-title">Tetris</div>
+                    <div class="game-card-desc">Block-Puzzle</div>
+                </div>
+                <div class="game-card" onclick="App.startGame('memory')">
+                    <div class="game-card-icon">&#129504;</div>
+                    <div class="game-card-title">Memory</div>
+                    <div class="game-card-desc">Karten-Paare finden</div>
+                </div>
+            </div>
+            <div id="gameArea" style="margin-top:24px;display:none">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+                    <span id="gameTitle" style="font-weight:600;font-size:16px"></span>
+                    <div style="display:flex;gap:8px;align-items:center">
+                        <span id="gameScore" style="font-family:var(--font-mono);font-size:14px;color:var(--primary)"></span>
+                        <button class="btn btn-secondary btn-sm" onclick="App.stopGame()">Beenden</button>
+                    </div>
+                </div>
+                <div class="game-canvas" id="gameCanvas"></div>
+            </div>
+        `;
+    }
+
+    // ── Minimal game stubs (to be expanded) ──
+    var activeGame = null, gameInterval = null, gameKeyHandler = null;
+
+    function startGame(name) {
+        stopGame();
+        document.getElementById('gameArea').style.display = 'block';
+        document.getElementById('gameTitle').textContent = name.toUpperCase();
+        document.getElementById('gameScore').textContent = 'Score: 0';
+        var canvas = document.getElementById('gameCanvas');
+
+        if (name === 'snake') startSnake(canvas);
+        else if (name === '2048') start2048(canvas);
+        else if (name === 'tetris') startTetris(canvas);
+        else if (name === 'memory') startMemory(canvas);
+    }
+
+    function stopGame() {
+        if (gameInterval) clearInterval(gameInterval);
+        if (gameKeyHandler) document.removeEventListener('keydown', gameKeyHandler);
+        activeGame = null;
+        gameInterval = null;
+        gameKeyHandler = null;
+        var area = document.getElementById('gameArea');
+        if (area) area.style.display = 'none';
+    }
+
+    // ── Snake ──
+    function startSnake(canvas) {
+        activeGame = 'snake';
+        var W = 20, H = 15, snake = [{x:10,y:7}], dir = {x:1,y:0}, food = null, score = 0;
+        function placeFood() {
+            do { food = {x:Math.floor(Math.random()*W),y:Math.floor(Math.random()*H)}; }
+            while (snake.some(function(s){return s.x===food.x&&s.y===food.y}));
+        }
+        placeFood();
+        function draw() {
+            var grid = [];
+            for (var y=0;y<H;y++){var row='';for(var x=0;x<W;x++){
+                if(snake.some(function(s){return s.x===x&&s.y===y}))row+='&#9608;&#9608;';
+                else if(food.x===x&&food.y===y)row+='&#9679; ';
+                else row+='&#183; ';
+            }grid.push(row);}
+            canvas.innerHTML=grid.join('\n');
+        }
+        function tick() {
+            var head = {x:snake[0].x+dir.x,y:snake[0].y+dir.y};
+            if(head.x<0||head.x>=W||head.y<0||head.y>=H||snake.some(function(s){return s.x===head.x&&s.y===head.y})){
+                clearInterval(gameInterval);canvas.innerHTML+='\n\n   GAME OVER!\n   Score: '+score;return;
+            }
+            snake.unshift(head);
+            if(head.x===food.x&&head.y===food.y){score+=10;placeFood();document.getElementById('gameScore').textContent='Score: '+score;}
+            else snake.pop();
+            draw();
+        }
+        gameKeyHandler = function(e){
+            if(e.key==='ArrowUp'&&dir.y!==1)dir={x:0,y:-1};
+            else if(e.key==='ArrowDown'&&dir.y!==-1)dir={x:0,y:1};
+            else if(e.key==='ArrowLeft'&&dir.x!==1)dir={x:-1,y:0};
+            else if(e.key==='ArrowRight'&&dir.x!==-1)dir={x:1,y:0};
+            if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.key))e.preventDefault();
+        };
+        document.addEventListener('keydown',gameKeyHandler);
+        draw();
+        gameInterval=setInterval(tick,150);
+    }
+
+    // ── 2048 ──
+    function start2048(canvas) {
+        activeGame = '2048';
+        var grid = [[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0]], score = 0;
+        function addTile(){var empty=[];for(var y=0;y<4;y++)for(var x=0;x<4;x++)if(!grid[y][x])empty.push({x:x,y:y});if(!empty.length)return;var t=empty[Math.floor(Math.random()*empty.length)];grid[t.y][t.x]=Math.random()<0.9?2:4;}
+        function draw(){var s='';for(var y=0;y<4;y++){for(var x=0;x<4;x++){var v=grid[y][x];s+=v?String(v).padStart(6,' '):'     .';} s+='\n\n';}canvas.innerHTML=s;document.getElementById('gameScore').textContent='Score: '+score;}
+        function move(dx,dy){var moved=false;var rng=function(n){var a=[];for(var i=0;i<n;i++)a.push(i);return a;};
+            var rows=rng(4),cols=rng(4);if(dy>0)rows.reverse();if(dx>0)cols.reverse();
+            rows.forEach(function(y){cols.forEach(function(x){if(!grid[y][x])return;var ny=y+dy,nx=x+dx;
+                while(ny>=0&&ny<4&&nx>=0&&nx<4&&!grid[ny][nx]){grid[ny][nx]=grid[y][x];grid[y-((ny-y)-dy)][x-((nx-x)-dx)]=0;ny+=dy;nx+=dx;moved=true;}
+                ny-=dy;nx-=dx;if(ny>=0&&ny<4&&nx>=0&&nx<4&&ny!==y&&nx!==x&&grid[ny][nx]===grid[ny-dy][nx-dx]){/* merge logic simplified */}
+            });});if(moved)addTile();draw();}
+        addTile();addTile();draw();
+        gameKeyHandler=function(e){if(e.key==='ArrowUp')move(0,-1);else if(e.key==='ArrowDown')move(0,1);else if(e.key==='ArrowLeft')move(-1,0);else if(e.key==='ArrowRight')move(1,0);if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.key))e.preventDefault();};
+        document.addEventListener('keydown',gameKeyHandler);
+    }
+
+    // ── Tetris (stub) ──
+    function startTetris(canvas) {
+        activeGame = 'tetris';
+        canvas.innerHTML = '\n\n     TETRIS\n\n     Pfeiltasten zum Spielen\n\n     Kommt bald...';
+    }
+
+    // ── Memory ──
+    function startMemory(canvas) {
+        activeGame = 'memory';
+        var emojis = ['&#9829;','&#9830;','&#9827;','&#9824;','&#9733;','&#9788;','&#9728;','&#9731;'];
+        var cards = emojis.concat(emojis);
+        // Shuffle
+        for(var i=cards.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var t=cards[i];cards[i]=cards[j];cards[j]=t;}
+        canvas.innerHTML = '\n\n     MEMORY\n\n     Finde die Paare!\n     (Klicke auf die Karten)\n\n     Kommt bald...';
+    }
+
+    // ══════════════════════════════════════
+    // SETTINGS
+    // ══════════════════════════════════════
+    async function renderSettings() {
+        try {
+            var data = await api('settings');
+            var c = document.getElementById('pageContent');
+            c.innerHTML = `
+                <div class="page-header">
+                    <h1 class="page-title">Einstellungen</h1>
+                </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
+                    <div class="card">
+                        <div class="card-header"><span class="card-title">Firmendaten</span></div>
+                        <div class="card-body">
+                            <div class="form-group"><label class="form-label">Firmenname</label><input class="form-input" id="s_company_name" value="${esc(data.company_name || '')}"></div>
+                            <div class="form-group"><label class="form-label">E-Mail</label><input class="form-input" id="s_company_email" value="${esc(data.company_email || '')}"></div>
+                            <div class="form-group"><label class="form-label">Telefon</label><input class="form-input" id="s_company_phone" value="${esc(data.company_phone || '')}"></div>
+                            <div class="form-group"><label class="form-label">Adresse</label><input class="form-input" id="s_company_address" value="${esc(data.company_address || '')}"></div>
+                            <button class="btn btn-primary" onclick="App.saveSettings()">Speichern</button>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="card-header"><span class="card-title">Chat Bot</span></div>
+                        <div class="card-body">
+                            <div class="form-group"><label class="form-label">Bot aktiviert</label>
+                                <select class="form-select" id="s_chat_bot_enabled">
+                                    <option value="1" ${data.chat_bot_enabled==='1'?'selected':''}>Ja</option>
+                                    <option value="0" ${data.chat_bot_enabled==='0'?'selected':''}>Nein</option>
+                                </select>
+                            </div>
+                            <div class="form-group"><label class="form-label">Begrüßung</label><textarea class="form-textarea" id="s_chat_bot_greeting" rows="3">${esc(data.chat_bot_greeting || '')}</textarea></div>
+                            <button class="btn btn-primary" onclick="App.saveSettings()">Speichern</button>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="card-header"><span class="card-title">Passwort ändern</span></div>
+                        <div class="card-body">
+                            <div class="form-group"><label class="form-label">Aktuelles Passwort</label><input class="form-input" type="password" id="pw_current"></div>
+                            <div class="form-group"><label class="form-label">Neues Passwort</label><input class="form-input" type="password" id="pw_new"></div>
+                            <button class="btn btn-primary" onclick="App.changePassword()">Passwort ändern</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        } catch (e) { toast(e.message, 'error'); }
+    }
+
+    async function saveSettings() {
+        var body = {};
+        ['company_name','company_email','company_phone','company_address','chat_bot_enabled','chat_bot_greeting'].forEach(function(k) {
+            var el = document.getElementById('s_' + k);
+            if (el) body[k] = el.value;
+        });
+        try {
+            await api('settings', { method: 'POST', body: body });
+            toast('Einstellungen gespeichert', 'success');
+        } catch (e) { toast(e.message, 'error'); }
+    }
+
+    async function changePassword() {
+        var current = document.getElementById('pw_current').value;
+        var newPw = document.getElementById('pw_new').value;
+        if (!current || !newPw) { toast('Alle Felder ausfüllen', 'error'); return; }
+        try {
+            await api('change-password', { method: 'POST', body: { current: current, 'new': newPw } });
+            toast('Passwort geändert', 'success');
+            document.getElementById('pw_current').value = '';
+            document.getElementById('pw_new').value = '';
+        } catch (e) { toast(e.message, 'error'); }
+    }
+
+    // ══════════════════════════════════════
+    // ADD CALL MODAL
+    // ══════════════════════════════════════
+    function showAddCall() {
+        showModal('Neuer Anruf', `
+            <form id="addCallForm">
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+                    <div class="form-group"><label class="form-label">Anrufer</label><input class="form-input" name="caller_name"></div>
+                    <div class="form-group"><label class="form-label">Telefon</label><input class="form-input" name="phone_number"></div>
+                    <div class="form-group"><label class="form-label">Richtung</label>
+                        <select class="form-select" name="direction"><option value="inbound">Eingehend</option><option value="outbound">Ausgehend</option></select>
+                    </div>
+                    <div class="form-group"><label class="form-label">Status</label>
+                        <select class="form-select" name="status"><option value="answered">Angenommen</option><option value="missed">Verpasst</option></select>
+                    </div>
+                    <div class="form-group"><label class="form-label">Dauer (Sek.)</label><input class="form-input" name="duration" type="number" value="0"></div>
+                    <div class="form-group"><label class="form-label">Bearbeiter</label><input class="form-input" name="agent"></div>
+                </div>
+                <div class="form-group"><label class="form-label">Notizen</label><textarea class="form-textarea" name="notes" rows="3"></textarea></div>
+            </form>
+        `, [
+            { label: 'Abbrechen', cls: 'btn-secondary', action: 'closeModal()' },
+            { label: 'Speichern', cls: 'btn-primary', action: 'App.saveCall()' }
+        ]);
+    }
+
+    async function saveCall() {
+        var form = document.getElementById('addCallForm');
+        var fd = new FormData(form);
+        var body = {};
+        fd.forEach(function(v, k) { body[k] = v; });
+        try {
+            await api('calls', { method: 'POST', body: body });
+            closeModal();
+            toast('Anruf gespeichert', 'success');
+            renderCalls();
+        } catch (e) { toast(e.message, 'error'); }
+    }
+
+    // ══════════════════════════════════════
+    // MODAL SYSTEM
+    // ══════════════════════════════════════
+    function showModal(title, bodyHtml, buttons) {
+        closeModal();
+        var btns = '';
+        if (buttons) {
+            btns = '<div class="modal-footer">' + buttons.map(function(b) {
+                return '<button class="btn ' + b.cls + '" onclick="' + b.action + '">' + b.label + '</button>';
+            }).join('') + '</div>';
+        }
+        var overlay = document.createElement('div');
+        overlay.className = 'modal-overlay show';
+        overlay.id = 'modalOverlay';
+        overlay.innerHTML = `
+            <div class="modal">
+                <div class="modal-header">
+                    <span class="modal-title">${title}</span>
+                    <button class="modal-close" onclick="closeModal()">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                    </button>
+                </div>
+                <div class="modal-body">${bodyHtml}</div>
+                ${btns}
+            </div>
+        `;
+        document.body.appendChild(overlay);
+        overlay.addEventListener('click', function(e) {
+            if (e.target === overlay) closeModal();
+        });
+    }
+
+    window.closeModal = function() {
+        var el = document.getElementById('modalOverlay');
+        if (el) el.remove();
+    };
+
+    // ══════════════════════════════════════
+    // UTILS
+    // ══════════════════════════════════════
+    function formatDate(dt) {
+        if (!dt) return '-';
+        var d = new Date(dt.replace(' ', 'T') + (dt.includes('+') ? '' : 'Z'));
+        var now = new Date();
+        var diff = now - d;
+        if (diff < 86400000 && d.getDate() === now.getDate()) {
+            return d.getHours().toString().padStart(2, '0') + ':' + d.getMinutes().toString().padStart(2, '0');
+        }
+        return d.getDate().toString().padStart(2, '0') + '.' + (d.getMonth() + 1).toString().padStart(2, '0') + '.' + d.getFullYear();
+    }
+
+    function formatTime(dt) {
+        if (!dt) return '';
+        var d = new Date(dt.replace(' ', 'T') + (dt.includes('+') ? '' : 'Z'));
+        return d.getHours().toString().padStart(2, '0') + ':' + d.getMinutes().toString().padStart(2, '0');
+    }
+
+    function timeAgo(dt) {
+        if (!dt) return '';
+        var d = new Date(dt.replace(' ', 'T') + (dt.includes('+') ? '' : 'Z'));
+        var diff = Math.floor((Date.now() - d.getTime()) / 1000);
+        if (diff < 60) return 'gerade eben';
+        if (diff < 3600) return Math.floor(diff / 60) + ' Min.';
+        if (diff < 86400) return Math.floor(diff / 3600) + ' Std.';
+        return Math.floor(diff / 86400) + ' Tage';
+    }
+
+    // ══════════════════════════════════════
+    // INIT
+    // ══════════════════════════════════════
+    function init() {
+        // Sidebar navigation
+        document.querySelectorAll('.nav-item').forEach(function(el) {
+            el.addEventListener('click', function(e) {
+                e.preventDefault();
+                navigate(el.dataset.page);
+                window.location.hash = el.dataset.page;
+            });
+        });
+
+        // Mobile sidebar toggle
+        document.getElementById('mobileMenuBtn').addEventListener('click', function() {
+            document.getElementById('sidebar').classList.add('open');
+            document.getElementById('sidebarOverlay').classList.add('show');
+        });
+        document.getElementById('sidebarOverlay').addEventListener('click', closeMobileSidebar);
+
+        // Sidebar collapse toggle
+        document.getElementById('sidebarToggle').addEventListener('click', function() {
+            document.getElementById('sidebar').classList.toggle('collapsed');
+        });
+
+        // Route from hash
+        var hash = window.location.hash.replace('#', '') || 'dashboard';
+        navigate(hash);
+
+        window.addEventListener('hashchange', function() {
+            var h = window.location.hash.replace('#', '') || 'dashboard';
+            navigate(h);
+        });
+    }
+
+    async function logout() {
+        await api('logout');
+        window.location.href = 'index.php';
+    }
+
+    // Auto-init
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', init);
+    } else {
+        init();
+    }
+
+    // Public API
+    return {
+        go: function(page) { window.location.hash = page; },
+        logout: logout,
+        showAddCall: showAddCall,
+        saveCall: saveCall,
+        showAddCustomer: showAddCustomer,
+        saveCustomer: saveCustomer,
+        viewCustomer: viewCustomer,
+        searchCustomers: searchCustomers,
+        viewEmail: viewEmail,
+        toggleStar: toggleStar,
+        openChat: openChat,
+        sendChat: sendChat,
+        startGame: startGame,
+        stopGame: stopGame,
+        saveSettings: saveSettings,
+        changePassword: changePassword,
+        toast: toast
+    };
+
+})();

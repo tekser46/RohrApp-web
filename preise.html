@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Preise | RohrApp+</title>
+    <meta name="description" content="Einfache, faire Preise für RohrApp+. Starter kostenlos, Professional ab 29 EUR/Monat.">
+    <link rel="icon" type="image/png" href="appicon.png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+
+<nav class="nav" id="nav">
+    <div class="container nav-inner">
+        <a href="index.html" class="nav-logo">
+            <img src="appicon.png" alt="RohrApp+">
+            <span class="nav-logo-text">RohrApp<span>+</span></span>
+        </a>
+        <ul class="nav-links">
+            <li><a href="funktionen.html">Funktionen</a></li>
+            <li><a href="preise.html" class="active">Preise</a></li>
+            <li><a href="kontakt.html">Kontakt</a></li>
+            <li><a href="admin/index.php" class="nav-cta">Kostenlos testen</a></li>
+        </ul>
+        <button class="nav-mobile" onclick="document.getElementById('mobileMenu').classList.toggle('show')">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12h18M3 6h18M3 18h18"/></svg>
+        </button>
+    </div>
+    <div class="mobile-menu" id="mobileMenu">
+        <a href="funktionen.html">Funktionen</a>
+        <a href="preise.html">Preise</a>
+        <a href="kontakt.html">Kontakt</a>
+        <a href="admin/index.php">Kostenlos testen</a>
+    </div>
+</nav>
+
+<!-- HERO MINI -->
+<section class="hero" style="padding-bottom: 60px;">
+    <div class="container" style="text-align: center;">
+        <div class="hero-badge" style="margin: 0 auto 20px;"><span class="dot"></span> Keine versteckten Kosten</div>
+        <h1 style="font-size: 46px; max-width: 500px; margin: 0 auto 16px;">Einfache, <span class="gradient">faire Preise</span></h1>
+        <p class="hero-desc" style="margin: 0 auto; text-align: center;">Wählen Sie den passenden Tarif für Ihr Unternehmen. Jederzeit kündbar, ohne Mindestlaufzeit.</p>
+    </div>
+</section>
+
+<!-- PRICING CARDS -->
+<section class="section" style="padding-top: 20px;">
+    <div class="container">
+        <div class="pricing-grid fade-up">
+            <!-- Starter -->
+            <div class="price-card">
+                <div class="price-name">Starter</div>
+                <div class="price-amount">0&euro; <span>/ Monat</span></div>
+                <div class="price-period">Kostenlos für immer</div>
+                <ul class="price-features">
+                    <li>Bis zu 2 Benutzer</li>
+                    <li>50 Anrufe / Monat</li>
+                    <li>E-Mail-Posteingang</li>
+                    <li>Basis-CRM (100 Kontakte)</li>
+                    <li>Web-Chat Widget</li>
+                    <li class="disabled">KI-Live-Chat</li>
+                    <li class="disabled">Berichte &amp; Analysen</li>
+                    <li class="disabled">Prioritäts-Support</li>
+                </ul>
+                <button class="price-btn" onclick="location.href='../index.php'">Kostenlos starten</button>
+            </div>
+
+            <!-- Professional -->
+            <div class="price-card popular">
+                <div class="price-popular-tag">Beliebtester Tarif</div>
+                <div class="price-name">Professional</div>
+                <div class="price-amount">29&euro; <span>/ Monat</span></div>
+                <div class="price-period">pro Benutzer, jährlich abgerechnet</div>
+                <ul class="price-features">
+                    <li>Bis zu 10 Benutzer</li>
+                    <li>Unbegrenzte Anrufe</li>
+                    <li>E-Mail Management</li>
+                    <li>Volles CRM (unbegrenzt)</li>
+                    <li>Nachrichten-Tracking</li>
+                    <li>KI-Live-Chat</li>
+                    <li>Berichte &amp; Analysen</li>
+                    <li class="disabled">Individuelle Anpassungen</li>
+                </ul>
+                <button class="price-btn" onclick="location.href='../index.php'">Jetzt starten</button>
+            </div>
+
+            <!-- Enterprise -->
+            <div class="price-card">
+                <div class="price-name">Enterprise</div>
+                <div class="price-amount">79&euro; <span>/ Monat</span></div>
+                <div class="price-period">pro Benutzer, jährlich abgerechnet</div>
+                <ul class="price-features">
+                    <li>Unbegrenzte Benutzer</li>
+                    <li>Unbegrenzte Anrufe</li>
+                    <li>Alle Professional-Features</li>
+                    <li>Individuelle Anpassungen</li>
+                    <li>API-Zugang</li>
+                    <li>Dedizierter Account Manager</li>
+                    <li>SLA-Garantie (99.99%)</li>
+                    <li>Prioritäts-Support 24/7</li>
+                </ul>
+                <button class="price-btn" onclick="location.href='kontakt.html'">Kontakt aufnehmen</button>
+            </div>
+        </div>
+
+        <!-- FEATURE COMPARISON TABLE -->
+        <div class="fade-up" style="margin-top: 80px;">
+            <div class="section-header">
+                <div class="section-tag">Vergleich</div>
+                <h2 class="section-title">Funktionen im Detail</h2>
+            </div>
+            <div style="overflow-x: auto;">
+                <table style="width: 100%; border-collapse: collapse; font-size: 14px; min-width: 600px;">
+                    <thead>
+                        <tr style="border-bottom: 2px solid var(--border);">
+                            <th style="text-align: left; padding: 14px 16px; font-weight: 700; width: 40%;">Funktion</th>
+                            <th style="text-align: center; padding: 14px 16px; font-weight: 700;">Starter</th>
+                            <th style="text-align: center; padding: 14px 16px; font-weight: 700; color: var(--primary);">Professional</th>
+                            <th style="text-align: center; padding: 14px 16px; font-weight: 700;">Enterprise</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr style="border-bottom: 1px solid var(--border);">
+                            <td style="padding: 12px 16px;">Benutzer</td>
+                            <td style="text-align: center; padding: 12px;">2</td>
+                            <td style="text-align: center; padding: 12px; background: rgba(0,102,161,0.02);">10</td>
+                            <td style="text-align: center; padding: 12px;">Unbegrenzt</td>
+                        </tr>
+                        <tr style="border-bottom: 1px solid var(--border);">
+                            <td style="padding: 12px 16px;">Anrufe pro Monat</td>
+                            <td style="text-align: center; padding: 12px;">50</td>
+                            <td style="text-align: center; padding: 12px; background: rgba(0,102,161,0.02);">Unbegrenzt</td>
+                            <td style="text-align: center; padding: 12px;">Unbegrenzt</td>
+                        </tr>
+                        <tr style="border-bottom: 1px solid var(--border);">
+                            <td style="padding: 12px 16px;">CRM-Kontakte</td>
+                            <td style="text-align: center; padding: 12px;">100</td>
+                            <td style="text-align: center; padding: 12px; background: rgba(0,102,161,0.02);">Unbegrenzt</td>
+                            <td style="text-align: center; padding: 12px;">Unbegrenzt</td>
+                        </tr>
+                        <tr style="border-bottom: 1px solid var(--border);">
+                            <td style="padding: 12px 16px;">E-Mail-Posteingang</td>
+                            <td style="text-align: center; padding: 12px; color: var(--success);">&#10003;</td>
+                            <td style="text-align: center; padding: 12px; color: var(--success); background: rgba(0,102,161,0.02);">&#10003;</td>
+                            <td style="text-align: center; padding: 12px; color: var(--success);">&#10003;</td>
+                        </tr>
+                        <tr style="border-bottom: 1px solid var(--border);">
+                            <td style="padding: 12px 16px;">Nachrichten-Tracking</td>
+                            <td style="text-align: center; padding: 12px; color: var(--text-muted);">&#10007;</td>
+                            <td style="text-align: center; padding: 12px; color: var(--success); background: rgba(0,102,161,0.02);">&#10003;</td>
+                            <td style="text-align: center; padding: 12px; color: var(--success);">&#10003;</td>
+                        </tr>
+                        <tr style="border-bottom: 1px solid var(--border);">
+                            <td style="padding: 12px 16px;">KI-Live-Chat</td>
+                            <td style="text-align: center; padding: 12px; color: var(--text-muted);">&#10007;</td>
+                            <td style="text-align: center; padding: 12px; color: var(--success); background: rgba(0,102,161,0.02);">&#10003;</td>
+                            <td style="text-align: center; padding: 12px; color: var(--success);">&#10003;</td>
+                        </tr>
+                        <tr style="border-bottom: 1px solid var(--border);">
+                            <td style="padding: 12px 16px;">Berichte &amp; Analysen</td>
+                            <td style="text-align: center; padding: 12px; color: var(--text-muted);">&#10007;</td>
+                            <td style="text-align: center; padding: 12px; color: var(--success); background: rgba(0,102,161,0.02);">&#10003;</td>
+                            <td style="text-align: center; padding: 12px; color: var(--success);">&#10003;</td>
+                        </tr>
+                        <tr style="border-bottom: 1px solid var(--border);">
+                            <td style="padding: 12px 16px;">API-Zugang</td>
+                            <td style="text-align: center; padding: 12px; color: var(--text-muted);">&#10007;</td>
+                            <td style="text-align: center; padding: 12px; color: var(--text-muted); background: rgba(0,102,161,0.02);">&#10007;</td>
+                            <td style="text-align: center; padding: 12px; color: var(--success);">&#10003;</td>
+                        </tr>
+                        <tr style="border-bottom: 1px solid var(--border);">
+                            <td style="padding: 12px 16px;">Individuelle Anpassungen</td>
+                            <td style="text-align: center; padding: 12px; color: var(--text-muted);">&#10007;</td>
+                            <td style="text-align: center; padding: 12px; color: var(--text-muted); background: rgba(0,102,161,0.02);">&#10007;</td>
+                            <td style="text-align: center; padding: 12px; color: var(--success);">&#10003;</td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 12px 16px;">Support</td>
+                            <td style="text-align: center; padding: 12px;">E-Mail</td>
+                            <td style="text-align: center; padding: 12px; background: rgba(0,102,161,0.02);">E-Mail &amp; Chat</td>
+                            <td style="text-align: center; padding: 12px;">24/7 Priorität</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- FAQ -->
+<section class="section section-alt">
+    <div class="container">
+        <div class="section-header fade-up">
+            <div class="section-tag">FAQ</div>
+            <h2 class="section-title">Häufig gestellte Fragen</h2>
+        </div>
+        <div class="faq-list fade-up">
+            <div class="faq-item">
+                <button class="faq-question" onclick="this.parentElement.classList.toggle('open')">
+                    Kann ich RohrApp+ wirklich kostenlos nutzen?
+                    <span class="faq-arrow">+</span>
+                </button>
+                <div class="faq-answer">Ja! Der Starter-Tarif ist dauerhaft kostenlos und beinhaltet alle Grundfunktionen. Sie können jederzeit auf einen kostenpflichtigen Tarif upgraden, wenn Sie mehr Funktionen oder Kapazitäten benötigen.</div>
+            </div>
+            <div class="faq-item">
+                <button class="faq-question" onclick="this.parentElement.classList.toggle('open')">
+                    Gibt es eine Mindestvertragslaufzeit?
+                    <span class="faq-arrow">+</span>
+                </button>
+                <div class="faq-answer">Nein, alle Tarife sind monatlich kündbar. Bei jährlicher Zahlung erhalten Sie einen Rabatt, können aber auch hier jederzeit zum Ende der Laufzeit kündigen.</div>
+            </div>
+            <div class="faq-item">
+                <button class="faq-question" onclick="this.parentElement.classList.toggle('open')">
+                    Wie funktioniert die Abrechnung?
+                    <span class="faq-arrow">+</span>
+                </button>
+                <div class="faq-answer">Die Abrechnung erfolgt pro Benutzer und Monat. Sie können zwischen monatlicher und jährlicher Zahlung wählen. Bei jährlicher Zahlung sparen Sie bis zu 20%. Bezahlung per Kreditkarte, SEPA-Lastschrift oder Rechnung möglich.</div>
+            </div>
+            <div class="faq-item">
+                <button class="faq-question" onclick="this.parentElement.classList.toggle('open')">
+                    Kann ich meinen Tarif jederzeit wechseln?
+                    <span class="faq-arrow">+</span>
+                </button>
+                <div class="faq-answer">Ja, ein Upgrade ist jederzeit möglich und wird sofort aktiviert. Bei einem Downgrade wird die Änderung zum nächsten Abrechnungszeitraum wirksam. Ihre Daten bleiben in jedem Fall erhalten.</div>
+            </div>
+            <div class="faq-item">
+                <button class="faq-question" onclick="this.parentElement.classList.toggle('open')">
+                    Wie lange dauert die Einrichtung?
+                    <span class="faq-arrow">+</span>
+                </button>
+                <div class="faq-answer">Die Grundeinrichtung dauert nur wenige Minuten. Konto erstellen, Mitarbeiter einladen, fertig. Für die vollständige Konfiguration (Vorlagen, KI-Chat-Training, CRM-Import) empfehlen wir etwa 1-2 Stunden. Unser Team hilft Ihnen gerne dabei.</div>
+            </div>
+            <div class="faq-item">
+                <button class="faq-question" onclick="this.parentElement.classList.toggle('open')">
+                    Werden meine Daten sicher gespeichert?
+                    <span class="faq-arrow">+</span>
+                </button>
+                <div class="faq-answer">Absolut. Alle Daten werden verschlüsselt auf Servern in Deutschland gespeichert und sind DSGVO-konform. Wir führen tägliche Backups durch und garantieren eine Verfügbarkeit von 99.9%.</div>
+            </div>
+            <div class="faq-item">
+                <button class="faq-question" onclick="this.parentElement.classList.toggle('open')">
+                    Bieten Sie Rabatte für größere Teams?
+                    <span class="faq-arrow">+</span>
+                </button>
+                <div class="faq-answer">Ja, ab 10 Benutzern bieten wir attraktive Mengenrabatte an. Kontaktieren Sie uns für ein individuelles Angebot, das auf die Größe Ihres Teams zugeschnitten ist.</div>
+            </div>
+            <div class="faq-item">
+                <button class="faq-question" onclick="this.parentElement.classList.toggle('open')">
+                    Kann ich meine bestehenden Kundendaten importieren?
+                    <span class="faq-arrow">+</span>
+                </button>
+                <div class="faq-answer">Ja, Sie können Kundendaten ganz einfach per CSV-Datei importieren. Unser System erkennt automatisch die Spaltenstruktur und ordnet die Daten den richtigen Feldern zu. Bei Fragen hilft Ihnen unser Support-Team gerne weiter.</div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- CTA -->
+<section class="section section-dark">
+    <div class="container">
+        <div class="cta fade-up">
+            <h2>Starten Sie jetzt kostenlos</h2>
+            <p class="section-desc">Keine Kreditkarte erforderlich. Keine versteckten Kosten. Jederzeit kündbar.</p>
+            <div class="hero-btns" style="justify-content: center;">
+                <a href="admin/index.php" class="btn btn-white btn-lg">Kostenlos testen</a>
+                <a href="kontakt.html" class="btn btn-secondary btn-lg" style="border-color: rgba(255,255,255,0.2); color: #fff;">Beratung anfragen</a>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- FOOTER -->
+<footer class="footer">
+    <div class="container">
+        <div class="footer-grid">
+            <div class="footer-brand">
+                <div class="footer-brand-logo">
+                    <img src="appicon.png" alt="">
+                    <span>RohrApp<em>+</em></span>
+                </div>
+                <p class="footer-brand-desc">Kommunikations- und Kundenmanagement speziell für Rohrreinigungsunternehmen.</p>
+            </div>
+            <div>
+                <div class="footer-col-title">Produkt</div>
+                <ul class="footer-links">
+                    <li><a href="funktionen.html">Funktionen</a></li>
+                    <li><a href="preise.html">Preise</a></li>
+                    <li><a href="admin/index.php">Demo testen</a></li>
+                </ul>
+            </div>
+            <div>
+                <div class="footer-col-title">Unternehmen</div>
+                <ul class="footer-links">
+                    <li><a href="kontakt.html">Kontakt</a></li>
+                    <li><a href="impressum.html">Impressum</a></li>
+                </ul>
+            </div>
+            <div>
+                <div class="footer-col-title">Rechtliches</div>
+                <ul class="footer-links">
+                    <li><a href="datenschutz.html">Datenschutz</a></li>
+                    <li><a href="agb.html">AGB</a></li>
+                </ul>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <span class="footer-copy">&copy; 2026 RohrApp+ &mdash; Powered by Sahin</span>
+        </div>
+    </div>
+</footer>
+
+<script>
+// Nav scroll
+window.addEventListener('scroll', function() {
+    document.getElementById('nav').classList.toggle('scrolled', window.scrollY > 20);
+});
+// Fade-up animation
+var observer = new IntersectionObserver(function(entries) {
+    entries.forEach(function(e) { if (e.isIntersecting) e.target.classList.add('visible'); });
+}, { threshold: 0.1 });
+document.querySelectorAll('.fade-up').forEach(function(el) { observer.observe(el); });
+</script>
+
+</body>
+</html>

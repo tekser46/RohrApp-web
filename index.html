@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RohrApp+ | Kommunikationsmanagement für Rohrreinigungsunternehmen</title>
+    <meta name="description" content="Alle Kundenkommunikation an einem Ort. Anrufe, E-Mails, Nachrichten und CRM speziell für Rohrreinigungsunternehmen.">
+    <link rel="icon" type="image/png" href="appicon.png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+
+<nav class="nav" id="nav">
+    <div class="container nav-inner">
+        <a href="index.html" class="nav-logo">
+            <img src="appicon.png" alt="RohrApp+">
+            <span class="nav-logo-text">RohrApp<span>+</span></span>
+        </a>
+        <ul class="nav-links">
+            <li><a href="funktionen.html">Funktionen</a></li>
+            <li><a href="preise.html">Preise</a></li>
+            <li><a href="kontakt.html">Kontakt</a></li>
+            <li><a href="admin/index.php" class="nav-cta">Kostenlos testen</a></li>
+        </ul>
+        <button class="nav-mobile" onclick="document.getElementById('mobileMenu').classList.toggle('show')">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12h18M3 6h18M3 18h18"/></svg>
+        </button>
+    </div>
+    <div class="mobile-menu" id="mobileMenu">
+        <a href="funktionen.html">Funktionen</a>
+        <a href="preise.html">Preise</a>
+        <a href="kontakt.html">Kontakt</a>
+        <a href="admin/index.php">Kostenlos testen</a>
+    </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+    <div class="container hero-inner">
+        <div class="hero-content">
+            <div class="hero-badge"><span class="dot"></span> Neu: KI-Live-Chat jetzt verfügbar</div>
+            <h1>Alle Kunden&shy;kommunikation <span class="gradient">an einem Ort</span></h1>
+            <p class="hero-desc">Verwalten Sie Anrufe, E-Mails, Nachrichten und Kundendaten in einer zentralen Plattform — speziell entwickelt für Rohrreinigungsunternehmen.</p>
+            <div class="hero-btns">
+                <a href="admin/index.php" class="btn btn-primary btn-lg">Kostenlos starten</a>
+                <a href="funktionen.html" class="btn btn-secondary btn-lg">Funktionen entdecken</a>
+            </div>
+        </div>
+        <div class="hero-image">
+            <div class="hero-mockup" style="height: 360px; background: linear-gradient(135deg, #f0f7ff 0%, #e3f2fd 100%); padding: 24px;">
+                <div style="background: #fff; border-radius: 12px; height: 100%; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.04);">
+                    <div style="display: flex; gap: 8px; margin-bottom: 16px;">
+                        <div style="width: 10px; height: 10px; border-radius: 50%; background: #ef4444;"></div>
+                        <div style="width: 10px; height: 10px; border-radius: 50%; background: #f59e0b;"></div>
+                        <div style="width: 10px; height: 10px; border-radius: 50%; background: #10b981;"></div>
+                    </div>
+                    <div style="display: flex; gap: 16px; height: calc(100% - 30px);">
+                        <div style="width: 180px; background: var(--bg-alt); border-radius: 8px; padding: 12px; flex-shrink: 0;">
+                            <div style="height: 12px; background: var(--primary); border-radius: 4px; margin-bottom: 12px; width: 80%;"></div>
+                            <div style="height: 10px; background: var(--border); border-radius: 4px; margin-bottom: 8px;"></div>
+                            <div style="height: 10px; background: var(--border); border-radius: 4px; margin-bottom: 8px;"></div>
+                            <div style="height: 10px; background: rgba(0,102,161,0.15); border-radius: 4px; margin-bottom: 8px;"></div>
+                            <div style="height: 10px; background: var(--border); border-radius: 4px; margin-bottom: 8px;"></div>
+                            <div style="height: 10px; background: var(--border); border-radius: 4px;"></div>
+                        </div>
+                        <div style="flex: 1;">
+                            <div style="height: 14px; background: var(--dark); border-radius: 4px; width: 40%; margin-bottom: 16px;"></div>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px;">
+                                <div style="background: rgba(0,102,161,0.08); border-radius: 8px; padding: 12px;">
+                                    <div style="height: 8px; background: var(--primary); border-radius: 4px; width: 50%; margin-bottom: 8px;"></div>
+                                    <div style="height: 20px; background: var(--primary); border-radius: 4px; width: 60%;"></div>
+                                </div>
+                                <div style="background: rgba(16,185,129,0.08); border-radius: 8px; padding: 12px;">
+                                    <div style="height: 8px; background: var(--success); border-radius: 4px; width: 50%; margin-bottom: 8px;"></div>
+                                    <div style="height: 20px; background: var(--success); border-radius: 4px; width: 70%;"></div>
+                                </div>
+                            </div>
+                            <div style="background: var(--bg-alt); border-radius: 8px; padding: 10px;">
+                                <div style="height: 8px; background: var(--border); border-radius: 4px; margin-bottom: 6px;"></div>
+                                <div style="height: 8px; background: var(--border); border-radius: 4px; width: 80%; margin-bottom: 6px;"></div>
+                                <div style="height: 8px; background: var(--border); border-radius: 4px; width: 60%;"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="hero-float f1">
+                <div class="hero-float-icon" style="background: rgba(16,185,129,0.1); color: #10b981;">&#9742;</div>
+                <div>
+                    <div style="font-size: 11px; color: var(--text-muted);">Eingehender Anruf</div>
+                    <div>+49 641 555 1234</div>
+                </div>
+            </div>
+            <div class="hero-float f2">
+                <div class="hero-float-icon" style="background: rgba(0,102,161,0.1); color: var(--primary);">&#9993;</div>
+                <div>
+                    <div style="font-size: 11px; color: var(--text-muted);">Neue Nachricht</div>
+                    <div>Auftrag bestätigt</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- STATS BAR -->
+<section class="stats-bar">
+    <div class="container">
+        <div class="stats-grid">
+            <div class="fade-up">
+                <div class="stat-number">500+</div>
+                <div class="stat-label">Aktive Nutzer</div>
+            </div>
+            <div class="fade-up">
+                <div class="stat-number">50K+</div>
+                <div class="stat-label">Verwaltete Anrufe</div>
+            </div>
+            <div class="fade-up">
+                <div class="stat-number">99.9%</div>
+                <div class="stat-label">Uptime-Garantie</div>
+            </div>
+            <div class="fade-up">
+                <div class="stat-number">4.9 &#9733;</div>
+                <div class="stat-label">Kundenbewertung</div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- FEATURES -->
+<section class="section" id="funktionen">
+    <div class="container">
+        <div class="section-header fade-up">
+            <div class="section-tag">Funktionen</div>
+            <h2 class="section-title">Alles, was Sie für Ihr Unternehmen brauchen</h2>
+            <p class="section-desc">Von der Anrufverwaltung bis zum Kunden-CRM — RohrApp+ vereint alle wichtigen Werkzeuge in einer Plattform.</p>
+        </div>
+        <div class="features-grid">
+            <div class="feature-card fade-up">
+                <div class="feature-icon blue">&#9742;</div>
+                <div class="feature-title">Anrufverwaltung</div>
+                <p class="feature-desc">Alle eingehenden und ausgehenden Anrufe zentral verwalten, protokollieren und nachverfolgen.</p>
+            </div>
+            <div class="feature-card fade-up">
+                <div class="feature-icon green">&#9993;</div>
+                <div class="feature-title">E-Mail Management</div>
+                <p class="feature-desc">E-Mails empfangen, versenden und automatisiert Kunden zuordnen — direkt in der App.</p>
+            </div>
+            <div class="feature-card fade-up">
+                <div class="feature-icon orange">&#128172;</div>
+                <div class="feature-title">Nachrichten-Tracking</div>
+                <p class="feature-desc">SMS, WhatsApp und Chat-Nachrichten in einem einheitlichen Posteingang verwalten.</p>
+            </div>
+            <div class="feature-card fade-up">
+                <div class="feature-icon purple">&#129302;</div>
+                <div class="feature-title">KI-Live-Chat</div>
+                <p class="feature-desc">Intelligenter Chatbot beantwortet Kundenanfragen rund um die Uhr automatisch und zuverlässig.</p>
+            </div>
+            <div class="feature-card fade-up">
+                <div class="feature-icon cyan">&#128101;</div>
+                <div class="feature-title">Kunden-CRM</div>
+                <p class="feature-desc">Kundendaten, Auftragshistorie und Kommunikationsverlauf an einem zentralen Ort.</p>
+            </div>
+            <div class="feature-card fade-up">
+                <div class="feature-icon red">&#127918;</div>
+                <div class="feature-title">Pausenspiele</div>
+                <p class="feature-desc">Motivierende Mini-Spiele für Ihr Team in der Pause — mit Ranglisten und Belohnungen.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- FEATURE DETAILS -->
+<section class="section section-alt">
+    <div class="container">
+        <!-- Anrufverwaltung -->
+        <div class="feature-detail fade-up">
+            <div class="feature-detail-content">
+                <div class="feature-detail-tag">Anrufverwaltung</div>
+                <h3 class="feature-detail-title">Kein Anruf geht mehr verloren</h3>
+                <p class="feature-detail-desc">Erfassen Sie jeden Anruf automatisch mit Zeitstempel, Dauer und Kundeninformationen. Verpasste Anrufe werden sofort markiert und Ihr Team erhält Echtzeit-Benachrichtigungen.</p>
+                <ul class="feature-detail-list">
+                    <li>Automatische Anrufprotokollierung</li>
+                    <li>Echtzeit-Benachrichtigungen bei verpassten Anrufen</li>
+                    <li>Anrufhistorie pro Kunde einsehbar</li>
+                    <li>Rückruf-Erinnerungen für Ihr Team</li>
+                </ul>
+            </div>
+            <div class="feature-detail-img" style="height: 320px; padding: 24px;">
+                <div style="background: #fff; border-radius: 10px; height: 100%; padding: 16px;">
+                    <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 16px;">
+                        <div style="width: 32px; height: 32px; border-radius: 8px; background: rgba(0,102,161,0.1); display: flex; align-items: center; justify-content: center; font-size: 14px;">&#9742;</div>
+                        <div style="font-size: 14px; font-weight: 700;">Anrufliste</div>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 10px; padding: 10px; background: rgba(16,185,129,0.06); border-radius: 8px; margin-bottom: 8px; border-left: 3px solid #10b981;">
+                        <div style="width: 8px; height: 8px; border-radius: 50%; background: #10b981;"></div>
+                        <div style="flex: 1;"><div style="height: 8px; background: var(--border); border-radius: 4px; width: 60%;"></div></div>
+                        <div style="font-size: 11px; color: var(--text-muted);">2 Min</div>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 10px; padding: 10px; background: rgba(239,68,68,0.06); border-radius: 8px; margin-bottom: 8px; border-left: 3px solid #ef4444;">
+                        <div style="width: 8px; height: 8px; border-radius: 50%; background: #ef4444;"></div>
+                        <div style="flex: 1;"><div style="height: 8px; background: var(--border); border-radius: 4px; width: 70%;"></div></div>
+                        <div style="font-size: 11px; color: #ef4444;">Verpasst</div>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 10px; padding: 10px; background: rgba(16,185,129,0.06); border-radius: 8px; margin-bottom: 8px; border-left: 3px solid #10b981;">
+                        <div style="width: 8px; height: 8px; border-radius: 50%; background: #10b981;"></div>
+                        <div style="flex: 1;"><div style="height: 8px; background: var(--border); border-radius: 4px; width: 50%;"></div></div>
+                        <div style="font-size: 11px; color: var(--text-muted);">5 Min</div>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 10px; padding: 10px; background: rgba(16,185,129,0.06); border-radius: 8px; border-left: 3px solid #10b981;">
+                        <div style="width: 8px; height: 8px; border-radius: 50%; background: #10b981;"></div>
+                        <div style="flex: 1;"><div style="height: 8px; background: var(--border); border-radius: 4px; width: 65%;"></div></div>
+                        <div style="font-size: 11px; color: var(--text-muted);">1 Min</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- KI-Chat -->
+        <div class="feature-detail reverse fade-up">
+            <div class="feature-detail-content">
+                <div class="feature-detail-tag">KI-Live-Chat</div>
+                <h3 class="feature-detail-title">Ihr digitaler Mitarbeiter — rund um die Uhr</h3>
+                <p class="feature-detail-desc">Unser KI-Chatbot beantwortet häufige Kundenanfragen automatisch, vereinbart Termine und leitet komplexe Anliegen an Ihr Team weiter. So sparen Sie Zeit und Ihre Kunden erhalten sofort Hilfe.</p>
+                <ul class="feature-detail-list">
+                    <li>24/7 automatisierte Kundenbetreuung</li>
+                    <li>Intelligente Weiterleitung an Mitarbeiter</li>
+                    <li>Terminvereinbarung per Chat</li>
+                    <li>Lernfähig — wird mit der Zeit besser</li>
+                </ul>
+            </div>
+            <div class="feature-detail-img" style="height: 320px; padding: 24px;">
+                <div style="background: #fff; border-radius: 10px; height: 100%; padding: 16px; display: flex; flex-direction: column;">
+                    <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 16px;">
+                        <div style="width: 32px; height: 32px; border-radius: 8px; background: rgba(139,92,246,0.1); display: flex; align-items: center; justify-content: center; font-size: 14px;">&#129302;</div>
+                        <div style="font-size: 14px; font-weight: 700;">Live-Chat</div>
+                        <div style="margin-left: auto; font-size: 10px; background: #10b981; color: #fff; padding: 2px 8px; border-radius: 10px;">Online</div>
+                    </div>
+                    <div style="flex: 1; display: flex; flex-direction: column; gap: 8px;">
+                        <div style="align-self: flex-start; background: var(--bg-alt); padding: 8px 12px; border-radius: 10px 10px 10px 2px; font-size: 12px; color: var(--text-light); max-width: 75%;">Hallo! Ich brauche eine Rohrreinigung in Gießen.</div>
+                        <div style="align-self: flex-end; background: var(--primary); color: #fff; padding: 8px 12px; border-radius: 10px 10px 2px 10px; font-size: 12px; max-width: 75%;">Gerne! Für welchen Tag soll ich einen Termin vorschlagen?</div>
+                        <div style="align-self: flex-start; background: var(--bg-alt); padding: 8px 12px; border-radius: 10px 10px 10px 2px; font-size: 12px; color: var(--text-light); max-width: 75%;">Am besten morgen Vormittag.</div>
+                        <div style="align-self: flex-end; background: var(--primary); color: #fff; padding: 8px 12px; border-radius: 10px 10px 2px 10px; font-size: 12px; max-width: 75%;">Perfekt! Morgen um 10:00 Uhr wäre ein Termin frei. Soll ich den buchen?</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- CRM -->
+        <div class="feature-detail fade-up">
+            <div class="feature-detail-content">
+                <div class="feature-detail-tag">Kunden-CRM</div>
+                <h3 class="feature-detail-title">Jeder Kunde, jedes Detail — immer griffbereit</h3>
+                <p class="feature-detail-desc">Behalten Sie den Überblick über alle Kundendaten, vergangene Aufträge und die komplette Kommunikationshistorie. So kennen Sie Ihre Kunden besser als je zuvor.</p>
+                <ul class="feature-detail-list">
+                    <li>Zentrale Kundendatenbank</li>
+                    <li>Vollständige Auftragshistorie</li>
+                    <li>Kommunikationsverlauf auf einen Blick</li>
+                    <li>Notizen und Tags pro Kunde</li>
+                </ul>
+            </div>
+            <div class="feature-detail-img" style="height: 320px; padding: 24px;">
+                <div style="background: #fff; border-radius: 10px; height: 100%; padding: 16px;">
+                    <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 16px;">
+                        <div style="width: 32px; height: 32px; border-radius: 8px; background: rgba(0,161,224,0.1); display: flex; align-items: center; justify-content: center; font-size: 14px;">&#128101;</div>
+                        <div style="font-size: 14px; font-weight: 700;">Kundenprofil</div>
+                    </div>
+                    <div style="display: flex; gap: 12px; align-items: center; padding: 12px; background: var(--bg-alt); border-radius: 8px; margin-bottom: 12px;">
+                        <div style="width: 38px; height: 38px; border-radius: 50%; background: linear-gradient(135deg, var(--primary), var(--accent)); display: flex; align-items: center; justify-content: center; color: #fff; font-size: 14px; font-weight: 700;">MK</div>
+                        <div>
+                            <div style="font-size: 13px; font-weight: 700;">Max Kellner</div>
+                            <div style="font-size: 11px; color: var(--text-muted);">Stammkunde seit 2023</div>
+                        </div>
+                        <div style="margin-left: auto; font-size: 10px; background: rgba(16,185,129,0.1); color: #10b981; padding: 3px 8px; border-radius: 6px; font-weight: 600;">Aktiv</div>
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px;">
+                        <div style="background: var(--bg-alt); border-radius: 6px; padding: 8px 10px;">
+                            <div style="font-size: 10px; color: var(--text-muted);">Aufträge</div>
+                            <div style="font-size: 16px; font-weight: 700;">12</div>
+                        </div>
+                        <div style="background: var(--bg-alt); border-radius: 6px; padding: 8px 10px;">
+                            <div style="font-size: 10px; color: var(--text-muted);">Umsatz</div>
+                            <div style="font-size: 16px; font-weight: 700;">4.820 &euro;</div>
+                        </div>
+                    </div>
+                    <div style="font-size: 11px; color: var(--text-muted); margin-bottom: 6px;">Letzte Aktivität</div>
+                    <div style="height: 8px; background: var(--border); border-radius: 4px; margin-bottom: 6px; width: 90%;"></div>
+                    <div style="height: 8px; background: var(--border); border-radius: 4px; width: 70%;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section class="section">
+    <div class="container">
+        <div class="section-header fade-up">
+            <div class="section-tag">So funktioniert's</div>
+            <h2 class="section-title">In 3 Schritten startklar</h2>
+            <p class="section-desc">Keine komplizierte Einrichtung, kein Technik-Studium nötig. Starten Sie in wenigen Minuten.</p>
+        </div>
+        <div class="steps">
+            <div class="step fade-up">
+                <div class="step-number">1</div>
+                <div class="step-title">Registrieren</div>
+                <p class="step-desc">Erstellen Sie Ihr kostenloses Konto in unter einer Minute. Keine Kreditkarte erforderlich.</p>
+            </div>
+            <div class="step fade-up">
+                <div class="step-number">2</div>
+                <div class="step-title">Einrichten</div>
+                <p class="step-desc">Passen Sie RohrApp+ an Ihr Unternehmen an: Mitarbeiter, Rufnummern und Vorlagen konfigurieren.</p>
+            </div>
+            <div class="step fade-up">
+                <div class="step-number">3</div>
+                <div class="step-title">Loslegen</div>
+                <p class="step-desc">Verwalten Sie ab sofort alle Anrufe, E-Mails und Kundendaten an einem Ort.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- TESTIMONIALS -->
+<section class="section section-alt">
+    <div class="container">
+        <div class="section-header fade-up">
+            <div class="section-tag">Kundenstimmen</div>
+            <h2 class="section-title">Das sagen unsere Kunden</h2>
+            <p class="section-desc">Rohrreinigungsunternehmen in ganz Deutschland vertrauen auf RohrApp+.</p>
+        </div>
+        <div class="testimonials-grid">
+            <div class="testimonial-card fade-up">
+                <div class="testimonial-stars">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
+                <p class="testimonial-text">Seit wir RohrApp+ nutzen, verpassen wir keinen Anruf mehr. Die automatische Protokollierung spart uns täglich mindestens eine Stunde Verwaltungsarbeit.</p>
+                <div class="testimonial-author">
+                    <div class="testimonial-avatar">TM</div>
+                    <div>
+                        <div class="testimonial-name">Thomas Meier</div>
+                        <div class="testimonial-role">Geschäftsführer, Meier Rohrreinigung GmbH</div>
+                    </div>
+                </div>
+            </div>
+            <div class="testimonial-card fade-up">
+                <div class="testimonial-stars">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
+                <p class="testimonial-text">Der KI-Chat ist ein Gamechanger. Unsere Kunden bekommen sofort Antworten, auch am Wochenende. Die Terminbuchung läuft jetzt fast komplett automatisch.</p>
+                <div class="testimonial-author">
+                    <div class="testimonial-avatar">SW</div>
+                    <div>
+                        <div class="testimonial-name">Sandra Weber</div>
+                        <div class="testimonial-role">Inhaberin, Weber Rohr- und Kanalservice</div>
+                    </div>
+                </div>
+            </div>
+            <div class="testimonial-card fade-up">
+                <div class="testimonial-stars">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
+                <p class="testimonial-text">Endlich eine Software, die für unsere Branche gemacht ist. Das CRM ist übersichtlich, die Anrufverwaltung funktioniert einwandfrei. Absolute Empfehlung!</p>
+                <div class="testimonial-author">
+                    <div class="testimonial-avatar">HB</div>
+                    <div>
+                        <div class="testimonial-name">Hans Becker</div>
+                        <div class="testimonial-role">Inhaber, Becker Abfluss-Notdienst</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- CTA -->
+<section class="section section-dark">
+    <div class="container">
+        <div class="cta fade-up">
+            <h2>Bereit, Ihre Kommunikation zu revolutionieren?</h2>
+            <p class="section-desc">Starten Sie jetzt kostenlos und überzeugen Sie sich selbst. Keine Kreditkarte erforderlich.</p>
+            <div class="hero-btns" style="justify-content: center;">
+                <a href="admin/index.php" class="btn btn-white btn-lg">Jetzt kostenlos testen</a>
+                <a href="kontakt.html" class="btn btn-secondary btn-lg" style="border-color: rgba(255,255,255,0.2); color: #fff;">Kontakt aufnehmen</a>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- FOOTER -->
+<footer class="footer">
+    <div class="container">
+        <div class="footer-grid">
+            <div class="footer-brand">
+                <div class="footer-brand-logo">
+                    <img src="appicon.png" alt="">
+                    <span>RohrApp<em>+</em></span>
+                </div>
+                <p class="footer-brand-desc">Kommunikations- und Kundenmanagement speziell für Rohrreinigungsunternehmen.</p>
+            </div>
+            <div>
+                <div class="footer-col-title">Produkt</div>
+                <ul class="footer-links">
+                    <li><a href="funktionen.html">Funktionen</a></li>
+                    <li><a href="preise.html">Preise</a></li>
+                    <li><a href="admin/index.php">Demo testen</a></li>
+                </ul>
+            </div>
+            <div>
+                <div class="footer-col-title">Unternehmen</div>
+                <ul class="footer-links">
+                    <li><a href="kontakt.html">Kontakt</a></li>
+                    <li><a href="impressum.html">Impressum</a></li>
+                </ul>
+            </div>
+            <div>
+                <div class="footer-col-title">Rechtliches</div>
+                <ul class="footer-links">
+                    <li><a href="datenschutz.html">Datenschutz</a></li>
+                    <li><a href="agb.html">AGB</a></li>
+                </ul>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <span class="footer-copy">&copy; 2026 RohrApp+ &mdash; Powered by Sahin</span>
+        </div>
+    </div>
+</footer>
+
+<script>
+// Nav scroll
+window.addEventListener('scroll', function() {
+    document.getElementById('nav').classList.toggle('scrolled', window.scrollY > 20);
+});
+// Fade-up animation
+var observer = new IntersectionObserver(function(entries) {
+    entries.forEach(function(e) { if (e.isIntersecting) e.target.classList.add('visible'); });
+}, { threshold: 0.1 });
+document.querySelectorAll('.fade-up').forEach(function(el) { observer.observe(el); });
+</script>
+
+</body>
+</html>

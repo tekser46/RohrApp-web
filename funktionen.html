@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Funktionen | RohrApp+</title>
+    <meta name="description" content="Alle Funktionen von RohrApp+ im Überblick: Anrufverwaltung, E-Mail Management, KI-Chat, CRM und mehr.">
+    <link rel="icon" type="image/png" href="appicon.png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+
+<nav class="nav" id="nav">
+    <div class="container nav-inner">
+        <a href="index.html" class="nav-logo">
+            <img src="appicon.png" alt="RohrApp+">
+            <span class="nav-logo-text">RohrApp<span>+</span></span>
+        </a>
+        <ul class="nav-links">
+            <li><a href="funktionen.html" class="active">Funktionen</a></li>
+            <li><a href="preise.html">Preise</a></li>
+            <li><a href="kontakt.html">Kontakt</a></li>
+            <li><a href="admin/index.php" class="nav-cta">Kostenlos testen</a></li>
+        </ul>
+        <button class="nav-mobile" onclick="document.getElementById('mobileMenu').classList.toggle('show')">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12h18M3 6h18M3 18h18"/></svg>
+        </button>
+    </div>
+    <div class="mobile-menu" id="mobileMenu">
+        <a href="funktionen.html">Funktionen</a>
+        <a href="preise.html">Preise</a>
+        <a href="kontakt.html">Kontakt</a>
+        <a href="admin/index.php">Kostenlos testen</a>
+    </div>
+</nav>
+
+<!-- HERO MINI -->
+<section class="hero" style="padding-bottom: 60px;">
+    <div class="container" style="text-align: center;">
+        <div class="hero-badge" style="margin: 0 auto 20px;"><span class="dot"></span> Alle Features inklusive</div>
+        <h1 style="font-size: 46px; max-width: 600px; margin: 0 auto 16px;">Alle Funktionen <span class="gradient">im Überblick</span></h1>
+        <p class="hero-desc" style="margin: 0 auto 36px; text-align: center;">Entdecken Sie die komplette Werkzeugpalette, die RohrApp+ für Ihr Rohrreinigungsunternehmen bereithält.</p>
+        <div class="hero-btns" style="justify-content: center;">
+            <a href="admin/index.php" class="btn btn-primary btn-lg">Jetzt kostenlos testen</a>
+        </div>
+    </div>
+</section>
+
+<!-- FEATURE DETAILS -->
+<section class="section">
+    <div class="container">
+
+        <!-- 1. Anrufverwaltung -->
+        <div class="feature-detail fade-up">
+            <div class="feature-detail-content">
+                <div class="feature-detail-tag">Anrufverwaltung</div>
+                <h3 class="feature-detail-title">Kein Anruf geht mehr verloren</h3>
+                <p class="feature-detail-desc">Erfassen Sie jeden Anruf automatisch mit Zeitstempel, Dauer und Kundeninformationen. Verpasste Anrufe werden sofort markiert und Ihr Team erhält Echtzeit-Benachrichtigungen. Die vollständige Anrufhistorie ist pro Kunde jederzeit einsehbar.</p>
+                <ul class="feature-detail-list">
+                    <li>Automatische Anrufprotokollierung mit Zeitstempel</li>
+                    <li>Echtzeit-Benachrichtigungen bei verpassten Anrufen</li>
+                    <li>Anrufhistorie und -statistiken pro Kunde</li>
+                    <li>Rückruf-Erinnerungen und Aufgabenzuweisung</li>
+                    <li>Anrufnotizen und Gesprächszusammenfassungen</li>
+                    <li>Integration mit Ihrer bestehenden Telefonanlage</li>
+                </ul>
+            </div>
+            <div class="feature-detail-img" style="height: 360px; padding: 24px;">
+                <div style="background: #fff; border-radius: 10px; height: 100%; padding: 16px;">
+                    <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 14px; padding-bottom: 12px; border-bottom: 1px solid var(--border);">
+                        <div style="width: 32px; height: 32px; border-radius: 8px; background: rgba(0,102,161,0.1); display: flex; align-items: center; justify-content: center; font-size: 14px;">&#9742;</div>
+                        <div style="font-size: 14px; font-weight: 700;">Anrufverwaltung</div>
+                        <div style="margin-left: auto; font-size: 10px; background: rgba(0,102,161,0.08); color: var(--primary); padding: 3px 10px; border-radius: 6px; font-weight: 600;">Heute: 23 Anrufe</div>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 10px; padding: 10px; background: rgba(16,185,129,0.06); border-radius: 8px; margin-bottom: 6px; border-left: 3px solid #10b981;">
+                        <div style="width: 8px; height: 8px; border-radius: 50%; background: #10b981;"></div>
+                        <div style="flex: 1; font-size: 12px; font-weight: 600;">Müller GmbH</div>
+                        <div style="font-size: 10px; color: var(--text-muted);">3:42 Min</div>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 10px; padding: 10px; background: rgba(239,68,68,0.06); border-radius: 8px; margin-bottom: 6px; border-left: 3px solid #ef4444;">
+                        <div style="width: 8px; height: 8px; border-radius: 50%; background: #ef4444;"></div>
+                        <div style="flex: 1; font-size: 12px; font-weight: 600;">+49 641 555 8899</div>
+                        <div style="font-size: 10px; color: #ef4444; font-weight: 600;">Verpasst</div>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 10px; padding: 10px; background: rgba(16,185,129,0.06); border-radius: 8px; margin-bottom: 6px; border-left: 3px solid #10b981;">
+                        <div style="width: 8px; height: 8px; border-radius: 50%; background: #10b981;"></div>
+                        <div style="flex: 1; font-size: 12px; font-weight: 600;">Hausverwaltung Schmidt</div>
+                        <div style="font-size: 10px; color: var(--text-muted);">1:15 Min</div>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 10px; padding: 10px; background: rgba(16,185,129,0.06); border-radius: 8px; margin-bottom: 6px; border-left: 3px solid #10b981;">
+                        <div style="width: 8px; height: 8px; border-radius: 50%; background: #10b981;"></div>
+                        <div style="flex: 1; font-size: 12px; font-weight: 600;">Familie Braun</div>
+                        <div style="font-size: 10px; color: var(--text-muted);">5:20 Min</div>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 10px; padding: 10px; background: rgba(245,158,11,0.06); border-radius: 8px; border-left: 3px solid #f59e0b;">
+                        <div style="width: 8px; height: 8px; border-radius: 50%; background: #f59e0b;"></div>
+                        <div style="flex: 1; font-size: 12px; font-weight: 600;">Hotel Stadtmitte</div>
+                        <div style="font-size: 10px; color: #f59e0b; font-weight: 600;">Rückruf</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 2. E-Mail Management -->
+        <div class="feature-detail reverse fade-up" style="padding-top: 80px;">
+            <div class="feature-detail-content">
+                <div class="feature-detail-tag">E-Mail Management</div>
+                <h3 class="feature-detail-title">E-Mails intelligent verwalten</h3>
+                <p class="feature-detail-desc">Empfangen und versenden Sie E-Mails direkt in RohrApp+. Eingehende Nachrichten werden automatisch dem richtigen Kunden zugeordnet. Nutzen Sie Vorlagen für wiederkehrende Antworten und behalten Sie den Überblick über Ihre gesamte Korrespondenz.</p>
+                <ul class="feature-detail-list">
+                    <li>Automatische Kundenzuordnung eingehender E-Mails</li>
+                    <li>E-Mail-Vorlagen für Angebote und Bestätigungen</li>
+                    <li>Anhänge direkt an Kundenakte verknüpft</li>
+                    <li>Sammelpostfach für das gesamte Team</li>
+                    <li>Lesebestätigungen und Nachverfolgung</li>
+                    <li>Automatische Antworten bei Abwesenheit</li>
+                </ul>
+            </div>
+            <div class="feature-detail-img" style="height: 360px; padding: 24px;">
+                <div style="background: #fff; border-radius: 10px; height: 100%; padding: 16px;">
+                    <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 14px; padding-bottom: 12px; border-bottom: 1px solid var(--border);">
+                        <div style="width: 32px; height: 32px; border-radius: 8px; background: rgba(16,185,129,0.1); display: flex; align-items: center; justify-content: center; font-size: 14px;">&#9993;</div>
+                        <div style="font-size: 14px; font-weight: 700;">Posteingang</div>
+                        <div style="margin-left: auto; font-size: 10px; background: rgba(59,130,246,0.1); color: var(--info); padding: 3px 10px; border-radius: 6px; font-weight: 600;">3 Neu</div>
+                    </div>
+                    <div style="padding: 10px; border-radius: 8px; margin-bottom: 6px; background: rgba(59,130,246,0.04); border-left: 3px solid var(--info);">
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+                            <div style="font-size: 12px; font-weight: 700;">Anfrage Rohrreinigung</div>
+                            <div style="font-size: 10px; color: var(--text-muted);">10:24</div>
+                        </div>
+                        <div style="font-size: 11px; color: var(--text-muted);">info@mueller-gmbh.de</div>
+                    </div>
+                    <div style="padding: 10px; border-radius: 8px; margin-bottom: 6px; background: rgba(59,130,246,0.04); border-left: 3px solid var(--info);">
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+                            <div style="font-size: 12px; font-weight: 700;">Angebot akzeptiert</div>
+                            <div style="font-size: 10px; color: var(--text-muted);">09:15</div>
+                        </div>
+                        <div style="font-size: 11px; color: var(--text-muted);">braun.familie@web.de</div>
+                    </div>
+                    <div style="padding: 10px; border-radius: 8px; margin-bottom: 6px; border-left: 3px solid transparent;">
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+                            <div style="font-size: 12px; font-weight: 600; color: var(--text-light);">Re: Terminbestätigung</div>
+                            <div style="font-size: 10px; color: var(--text-muted);">Gestern</div>
+                        </div>
+                        <div style="font-size: 11px; color: var(--text-muted);">hotel-stadtmitte@hotel.de</div>
+                    </div>
+                    <div style="padding: 10px; border-radius: 8px; border-left: 3px solid transparent;">
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+                            <div style="font-size: 12px; font-weight: 600; color: var(--text-light);">Rechnung bezahlt</div>
+                            <div style="font-size: 10px; color: var(--text-muted);">Gestern</div>
+                        </div>
+                        <div style="font-size: 11px; color: var(--text-muted);">schmidt-verwaltung@gmail.com</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 3. Nachrichten -->
+        <div class="feature-detail fade-up" style="padding-top: 80px;">
+            <div class="feature-detail-content">
+                <div class="feature-detail-tag">Nachrichten</div>
+                <h3 class="feature-detail-title">Alle Nachrichten in einem Posteingang</h3>
+                <p class="feature-detail-desc">Egal ob SMS, WhatsApp oder Web-Chat — alle Nachrichten landen in einem einheitlichen Posteingang. Antworten Sie schnell und behalten Sie den vollen Überblick über jede Konversation.</p>
+                <ul class="feature-detail-list">
+                    <li>Einheitlicher Posteingang für alle Kanäle</li>
+                    <li>SMS-Versand direkt aus der App</li>
+                    <li>WhatsApp Business Integration</li>
+                    <li>Nachrichtenvorlagen für schnelle Antworten</li>
+                    <li>Automatische Benachrichtigungen</li>
+                    <li>Konversationen nach Kunde sortiert</li>
+                </ul>
+            </div>
+            <div class="feature-detail-img" style="height: 360px; padding: 24px;">
+                <div style="background: #fff; border-radius: 10px; height: 100%; padding: 16px; display: flex; flex-direction: column;">
+                    <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 14px; padding-bottom: 12px; border-bottom: 1px solid var(--border);">
+                        <div style="width: 32px; height: 32px; border-radius: 8px; background: rgba(245,158,11,0.1); display: flex; align-items: center; justify-content: center; font-size: 14px;">&#128172;</div>
+                        <div style="font-size: 14px; font-weight: 700;">Nachrichten</div>
+                    </div>
+                    <div style="flex: 1; display: flex; flex-direction: column; gap: 8px;">
+                        <div style="align-self: flex-start; background: var(--bg-alt); padding: 8px 12px; border-radius: 10px 10px 10px 2px; font-size: 12px; color: var(--text-light); max-width: 80%;">
+                            <div style="font-size: 10px; color: var(--text-muted); margin-bottom: 2px;">WhatsApp &middot; Herr Braun</div>
+                            Wann kann der Techniker kommen?
+                        </div>
+                        <div style="align-self: flex-end; background: var(--primary); color: #fff; padding: 8px 12px; border-radius: 10px 10px 2px 10px; font-size: 12px; max-width: 80%;">
+                            Morgen zwischen 9 und 11 Uhr wäre ein Termin frei. Passt das?
+                        </div>
+                        <div style="align-self: flex-start; background: var(--bg-alt); padding: 8px 12px; border-radius: 10px 10px 10px 2px; font-size: 12px; color: var(--text-light); max-width: 80%;">
+                            <div style="font-size: 10px; color: var(--text-muted); margin-bottom: 2px;">SMS &middot; Frau Klein</div>
+                            Vielen Dank, der Termin ist bestätigt!
+                        </div>
+                        <div style="align-self: flex-end; background: var(--primary); color: #fff; padding: 8px 12px; border-radius: 10px 10px 2px 10px; font-size: 12px; max-width: 80%;">
+                            Super! Unser Techniker kommt morgen um 9:00 Uhr. Bis dann!
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 4. KI-Live-Chat -->
+        <div class="feature-detail reverse fade-up" style="padding-top: 80px;">
+            <div class="feature-detail-content">
+                <div class="feature-detail-tag">KI-Live-Chat</div>
+                <h3 class="feature-detail-title">Ihr digitaler Mitarbeiter — rund um die Uhr</h3>
+                <p class="feature-detail-desc">Der intelligente KI-Chatbot beantwortet häufige Kundenanfragen automatisch, vereinbart Termine und leitet komplexe Anliegen an Ihr Team weiter. Trainieren Sie den Bot mit Ihren eigenen Daten, damit er perfekt zu Ihrem Unternehmen passt.</p>
+                <ul class="feature-detail-list">
+                    <li>24/7 automatisierte Kundenbetreuung</li>
+                    <li>Intelligente Weiterleitung an Mitarbeiter</li>
+                    <li>Terminvereinbarung direkt per Chat</li>
+                    <li>Anpassbar an Ihre Unternehmensinfos</li>
+                    <li>Mehrsprachige Unterstützung</li>
+                    <li>Lernfähig — wird mit der Zeit besser</li>
+                </ul>
+            </div>
+            <div class="feature-detail-img" style="height: 360px; padding: 24px;">
+                <div style="background: #fff; border-radius: 10px; height: 100%; padding: 16px; display: flex; flex-direction: column;">
+                    <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 14px; padding-bottom: 12px; border-bottom: 1px solid var(--border);">
+                        <div style="width: 32px; height: 32px; border-radius: 8px; background: rgba(139,92,246,0.1); display: flex; align-items: center; justify-content: center; font-size: 14px;">&#129302;</div>
+                        <div style="font-size: 14px; font-weight: 700;">KI-Assistent</div>
+                        <div style="margin-left: auto; font-size: 10px; background: #10b981; color: #fff; padding: 2px 8px; border-radius: 10px;">Online</div>
+                    </div>
+                    <div style="flex: 1; display: flex; flex-direction: column; gap: 8px;">
+                        <div style="align-self: flex-start; background: var(--bg-alt); padding: 8px 12px; border-radius: 10px 10px 10px 2px; font-size: 12px; color: var(--text-light); max-width: 80%;">Was kostet eine Rohrreinigung bei verstopftem Abfluss?</div>
+                        <div style="align-self: flex-end; background: var(--primary); color: #fff; padding: 8px 12px; border-radius: 10px 10px 2px 10px; font-size: 12px; max-width: 80%;">Eine Rohrreinigung bei verstopftem Abfluss beginnt bei uns ab 89 EUR. Der genaue Preis hängt vom Aufwand ab. Soll ich einen Termin für Sie vereinbaren?</div>
+                        <div style="align-self: flex-start; background: var(--bg-alt); padding: 8px 12px; border-radius: 10px 10px 10px 2px; font-size: 12px; color: var(--text-light); max-width: 80%;">Ja, bitte. Am liebsten übermorgen.</div>
+                        <div style="align-self: flex-end; background: var(--primary); color: #fff; padding: 8px 12px; border-radius: 10px 10px 2px 10px; font-size: 12px; max-width: 80%;">Übermorgen habe ich 10:00 oder 14:30 Uhr frei. Welcher Termin passt Ihnen besser?</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 5. Kunden-CRM -->
+        <div class="feature-detail fade-up" style="padding-top: 80px;">
+            <div class="feature-detail-content">
+                <div class="feature-detail-tag">Kunden-CRM</div>
+                <h3 class="feature-detail-title">Jeder Kunde, jedes Detail — immer griffbereit</h3>
+                <p class="feature-detail-desc">Das integrierte CRM speichert alle relevanten Kundendaten, die komplette Auftragshistorie und den gesamten Kommunikationsverlauf. Taggen und segmentieren Sie Ihre Kunden für gezielte Ansprache und besseren Service.</p>
+                <ul class="feature-detail-list">
+                    <li>Zentrale Kundendatenbank mit Suchfunktion</li>
+                    <li>Vollständige Auftrags- und Zahlungshistorie</li>
+                    <li>Kommunikationsverlauf über alle Kanäle</li>
+                    <li>Notizen, Tags und benutzerdefinierte Felder</li>
+                    <li>Kundengruppen und Segmentierung</li>
+                    <li>Export als CSV oder PDF</li>
+                </ul>
+            </div>
+            <div class="feature-detail-img" style="height: 360px; padding: 24px;">
+                <div style="background: #fff; border-radius: 10px; height: 100%; padding: 16px;">
+                    <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 14px; padding-bottom: 12px; border-bottom: 1px solid var(--border);">
+                        <div style="width: 32px; height: 32px; border-radius: 8px; background: rgba(0,161,224,0.1); display: flex; align-items: center; justify-content: center; font-size: 14px;">&#128101;</div>
+                        <div style="font-size: 14px; font-weight: 700;">Kundenliste</div>
+                        <div style="margin-left: auto; font-size: 10px; color: var(--text-muted);">248 Kunden</div>
+                    </div>
+                    <div style="display: flex; gap: 10px; align-items: center; padding: 10px; border-radius: 8px; margin-bottom: 6px; background: rgba(0,102,161,0.04);">
+                        <div style="width: 30px; height: 30px; border-radius: 50%; background: linear-gradient(135deg, var(--primary), var(--accent)); display: flex; align-items: center; justify-content: center; color: #fff; font-size: 11px; font-weight: 700; flex-shrink: 0;">MK</div>
+                        <div style="flex: 1;"><div style="font-size: 12px; font-weight: 600;">Max Kellner</div><div style="font-size: 10px; color: var(--text-muted);">12 Aufträge</div></div>
+                        <div style="font-size: 10px; background: rgba(16,185,129,0.1); color: #10b981; padding: 2px 8px; border-radius: 6px;">Stammkunde</div>
+                    </div>
+                    <div style="display: flex; gap: 10px; align-items: center; padding: 10px; border-radius: 8px; margin-bottom: 6px;">
+                        <div style="width: 30px; height: 30px; border-radius: 50%; background: linear-gradient(135deg, #f59e0b, #ef4444); display: flex; align-items: center; justify-content: center; color: #fff; font-size: 11px; font-weight: 700; flex-shrink: 0;">AB</div>
+                        <div style="flex: 1;"><div style="font-size: 12px; font-weight: 600;">Anna Braun</div><div style="font-size: 10px; color: var(--text-muted);">3 Aufträge</div></div>
+                        <div style="font-size: 10px; background: rgba(59,130,246,0.1); color: var(--info); padding: 2px 8px; border-radius: 6px;">Neu</div>
+                    </div>
+                    <div style="display: flex; gap: 10px; align-items: center; padding: 10px; border-radius: 8px; margin-bottom: 6px;">
+                        <div style="width: 30px; height: 30px; border-radius: 50%; background: linear-gradient(135deg, #10b981, #0066a1); display: flex; align-items: center; justify-content: center; color: #fff; font-size: 11px; font-weight: 700; flex-shrink: 0;">HS</div>
+                        <div style="flex: 1;"><div style="font-size: 12px; font-weight: 600;">Hausverwaltung Schmidt</div><div style="font-size: 10px; color: var(--text-muted);">28 Aufträge</div></div>
+                        <div style="font-size: 10px; background: rgba(139,92,246,0.1); color: var(--purple); padding: 2px 8px; border-radius: 6px;">VIP</div>
+                    </div>
+                    <div style="display: flex; gap: 10px; align-items: center; padding: 10px; border-radius: 8px;">
+                        <div style="width: 30px; height: 30px; border-radius: 50%; background: linear-gradient(135deg, #8b5cf6, #ec4899); display: flex; align-items: center; justify-content: center; color: #fff; font-size: 11px; font-weight: 700; flex-shrink: 0;">LW</div>
+                        <div style="flex: 1;"><div style="font-size: 12px; font-weight: 600;">Lisa Wagner</div><div style="font-size: 10px; color: var(--text-muted);">1 Auftrag</div></div>
+                        <div style="font-size: 10px; background: rgba(59,130,246,0.1); color: var(--info); padding: 2px 8px; border-radius: 6px;">Neu</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 6. Berichte & Analysen -->
+        <div class="feature-detail reverse fade-up" style="padding-top: 80px;">
+            <div class="feature-detail-content">
+                <div class="feature-detail-tag">Berichte &amp; Analysen</div>
+                <h3 class="feature-detail-title">Datenbasierte Entscheidungen treffen</h3>
+                <p class="feature-detail-desc">Erhalten Sie detaillierte Einblicke in Ihre Unternehmensleistung. Von Anrufstatistiken bis zur Kundenzufriedenheit — alle wichtigen Kennzahlen auf einen Blick in übersichtlichen Dashboards und Berichten.</p>
+                <ul class="feature-detail-list">
+                    <li>Übersichtliches Analyse-Dashboard</li>
+                    <li>Anruf- und Nachrichtenstatistiken</li>
+                    <li>Umsatz- und Auftragsberichte</li>
+                    <li>Mitarbeiter-Performance-Übersicht</li>
+                    <li>Kundenzufriedenheits-Tracking</li>
+                    <li>Automatische Monats- und Wochenberichte</li>
+                </ul>
+            </div>
+            <div class="feature-detail-img" style="height: 360px; padding: 24px;">
+                <div style="background: #fff; border-radius: 10px; height: 100%; padding: 16px;">
+                    <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 14px; padding-bottom: 12px; border-bottom: 1px solid var(--border);">
+                        <div style="width: 32px; height: 32px; border-radius: 8px; background: rgba(139,92,246,0.1); display: flex; align-items: center; justify-content: center; font-size: 14px;">&#128202;</div>
+                        <div style="font-size: 14px; font-weight: 700;">Dashboard</div>
+                        <div style="margin-left: auto; font-size: 10px; color: var(--text-muted);">März 2026</div>
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px;">
+                        <div style="background: rgba(0,102,161,0.06); border-radius: 8px; padding: 10px;">
+                            <div style="font-size: 10px; color: var(--text-muted);">Anrufe</div>
+                            <div style="font-size: 20px; font-weight: 800; color: var(--primary);">342</div>
+                            <div style="font-size: 10px; color: #10b981;">+12%</div>
+                        </div>
+                        <div style="background: rgba(16,185,129,0.06); border-radius: 8px; padding: 10px;">
+                            <div style="font-size: 10px; color: var(--text-muted);">Aufträge</div>
+                            <div style="font-size: 20px; font-weight: 800; color: #10b981;">89</div>
+                            <div style="font-size: 10px; color: #10b981;">+8%</div>
+                        </div>
+                    </div>
+                    <div style="background: var(--bg-alt); border-radius: 8px; padding: 10px; margin-bottom: 8px;">
+                        <div style="font-size: 10px; color: var(--text-muted); margin-bottom: 8px;">Umsatz (letzte 7 Tage)</div>
+                        <div style="display: flex; align-items: flex-end; gap: 6px; height: 60px;">
+                            <div style="flex: 1; background: rgba(0,102,161,0.2); border-radius: 3px; height: 40%;"></div>
+                            <div style="flex: 1; background: rgba(0,102,161,0.3); border-radius: 3px; height: 60%;"></div>
+                            <div style="flex: 1; background: rgba(0,102,161,0.2); border-radius: 3px; height: 35%;"></div>
+                            <div style="flex: 1; background: rgba(0,102,161,0.4); border-radius: 3px; height: 75%;"></div>
+                            <div style="flex: 1; background: rgba(0,102,161,0.5); border-radius: 3px; height: 90%;"></div>
+                            <div style="flex: 1; background: rgba(0,102,161,0.3); border-radius: 3px; height: 55%;"></div>
+                            <div style="flex: 1; background: linear-gradient(135deg, var(--primary), var(--accent)); border-radius: 3px; height: 100%;"></div>
+                        </div>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; padding: 6px 0;">
+                        <div style="font-size: 10px; color: var(--text-muted);">Kundenzufriedenheit</div>
+                        <div style="font-size: 10px; font-weight: 700; color: #10b981;">4.8 / 5.0 &#9733;</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</section>
+
+<!-- CTA -->
+<section class="section section-dark">
+    <div class="container">
+        <div class="cta fade-up">
+            <h2>Überzeugt? Dann starten Sie jetzt!</h2>
+            <p class="section-desc">Testen Sie RohrApp+ kostenlos und entdecken Sie alle Funktionen ohne Einschränkungen.</p>
+            <div class="hero-btns" style="justify-content: center;">
+                <a href="admin/index.php" class="btn btn-white btn-lg">Kostenlos testen</a>
+                <a href="preise.html" class="btn btn-secondary btn-lg" style="border-color: rgba(255,255,255,0.2); color: #fff;">Preise ansehen</a>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- FOOTER -->
+<footer class="footer">
+    <div class="container">
+        <div class="footer-grid">
+            <div class="footer-brand">
+                <div class="footer-brand-logo">
+                    <img src="appicon.png" alt="">
+                    <span>RohrApp<em>+</em></span>
+                </div>
+                <p class="footer-brand-desc">Kommunikations- und Kundenmanagement speziell für Rohrreinigungsunternehmen.</p>
+            </div>
+            <div>
+                <div class="footer-col-title">Produkt</div>
+                <ul class="footer-links">
+                    <li><a href="funktionen.html">Funktionen</a></li>
+                    <li><a href="preise.html">Preise</a></li>
+                    <li><a href="admin/index.php">Demo testen</a></li>
+                </ul>
+            </div>
+            <div>
+                <div class="footer-col-title">Unternehmen</div>
+                <ul class="footer-links">
+                    <li><a href="kontakt.html">Kontakt</a></li>
+                    <li><a href="impressum.html">Impressum</a></li>
+                </ul>
+            </div>
+            <div>
+                <div class="footer-col-title">Rechtliches</div>
+                <ul class="footer-links">
+                    <li><a href="datenschutz.html">Datenschutz</a></li>
+                    <li><a href="agb.html">AGB</a></li>
+                </ul>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <span class="footer-copy">&copy; 2026 RohrApp+ &mdash; Powered by Sahin</span>
+        </div>
+    </div>
+</footer>
+
+<script>
+// Nav scroll
+window.addEventListener('scroll', function() {
+    document.getElementById('nav').classList.toggle('scrolled', window.scrollY > 20);
+});
+// Fade-up animation
+var observer = new IntersectionObserver(function(entries) {
+    entries.forEach(function(e) { if (e.isIntersecting) e.target.classList.add('visible'); });
+}, { threshold: 0.1 });
+document.querySelectorAll('.fade-up').forEach(function(el) { observer.observe(el); });
+</script>
+
+</body>
+</html>
