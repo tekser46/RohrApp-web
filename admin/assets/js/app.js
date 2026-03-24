@@ -781,21 +781,63 @@ const App = (function() {
         try {
             var data = await api('settings');
             var c = document.getElementById('pageContent');
+            // Avatar initial
+            var initial = (data.user_name || '?').charAt(0).toUpperCase();
             c.innerHTML = `
                 <div class="page-header">
                     <h1 class="page-title">Einstellungen</h1>
                 </div>
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
-                    <div class="card">
-                        <div class="card-header"><span class="card-title">Firmendaten</span></div>
+
+                    <!-- ── Profil & Firma ── -->
+                    <div class="card" style="grid-column:1/-1">
+                        <div class="card-header" style="display:flex;align-items:center;gap:14px">
+                            <div style="width:48px;height:48px;border-radius:50%;background:var(--primary);color:#fff;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:700;flex-shrink:0">${esc(initial)}</div>
+                            <div>
+                                <div class="card-title" style="margin:0">${esc(data.user_name || 'Mein Profil')}</div>
+                                <div style="font-size:12px;color:var(--text-muted);margin-top:2px">${esc(data.user_email || '')}</div>
+                            </div>
+                        </div>
                         <div class="card-body">
-                            <div class="form-group"><label class="form-label">Firmenname</label><input class="form-input" id="s_company_name" value="${esc(data.company_name || '')}"></div>
-                            <div class="form-group"><label class="form-label">E-Mail</label><input class="form-input" id="s_company_email" value="${esc(data.company_email || '')}"></div>
-                            <div class="form-group"><label class="form-label">Telefon</label><input class="form-input" id="s_company_phone" value="${esc(data.company_phone || '')}"></div>
-                            <div class="form-group"><label class="form-label">Adresse</label><input class="form-input" id="s_company_address" value="${esc(data.company_address || '')}"></div>
-                            <button class="btn btn-primary" onclick="App.saveSettings()">Speichern</button>
+                            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px">
+                                <div class="form-group">
+                                    <label class="form-label">Name &amp; Nachname</label>
+                                    <input class="form-input" id="s_user_name" value="${esc(data.user_name || '')}">
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">Firmenname</label>
+                                    <input class="form-input" id="s_user_company" value="${esc(data.user_company || data.company_name || '')}">
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">E-Mail</label>
+                                    <input class="form-input" id="s_user_email" value="${esc(data.user_email || '')}">
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">Telefon</label>
+                                    <input class="form-input" id="s_company_phone" value="${esc(data.company_phone || '')}" placeholder="+49 ...">
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">Straße &amp; Hausnummer</label>
+                                    <input class="form-input" id="s_company_address" value="${esc(data.company_address || '')}" placeholder="Musterstraße 1">
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">PLZ &amp; Stadt</label>
+                                    <div style="display:flex;gap:8px">
+                                        <input class="form-input" id="s_company_zip"  value="${esc(data.company_zip  || '')}" placeholder="12345" style="max-width:90px">
+                                        <input class="form-input" id="s_company_city" value="${esc(data.company_city || '')}" placeholder="München">
+                                    </div>
+                                </div>
+                            </div>
+                            <div style="display:flex;gap:10px;margin-top:4px">
+                                <button class="btn btn-primary" onclick="App.saveSettings()">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:5px"><polyline points="20 6 9 17 4 12"/></svg>
+                                    Speichern
+                                </button>
+                            </div>
                         </div>
                     </div>
+
+                    <!-- ── Chat Bot ── -->
                     <div class="card">
                         <div class="card-header"><span class="card-title">Chat Bot</span></div>
                         <div class="card-body">
@@ -809,6 +851,8 @@ const App = (function() {
                             <button class="btn btn-primary" onclick="App.saveSettings()">Speichern</button>
                         </div>
                     </div>
+
+                    <!-- ── Passwort ── -->
                     <div class="card">
                         <div class="card-header"><span class="card-title">Passwort ändern</span></div>
                         <div class="card-body">
@@ -817,13 +861,11 @@ const App = (function() {
                             <button class="btn btn-primary" onclick="App.changePassword()">Passwort ändern</button>
                         </div>
                     </div>
+
                     ${hasAccess('users') ? '<div class="card" id="updateCard"><div class="card-header"><span class="card-title">System-Update</span></div><div class="card-body" id="updateBody"><div class="spinner" style="margin:20px auto"></div></div></div>' : ''}
                 </div>
             `;
-            // Auto-check for updates if admin
-            if (hasAccess('users')) {
-                checkForUpdate();
-            }
+            if (hasAccess('users')) checkForUpdate();
         } catch (e) { toast(e.message, 'error'); }
     }
 
@@ -902,13 +944,27 @@ const App = (function() {
 
     async function saveSettings() {
         var body = {};
-        ['company_name','company_email','company_phone','company_address','chat_bot_enabled','chat_bot_greeting'].forEach(function(k) {
+        var allKeys = [
+            // settings table
+            'company_name', 'company_email', 'company_phone',
+            'company_address', 'company_zip', 'company_city',
+            'chat_bot_enabled', 'chat_bot_greeting',
+            // users table (prefixed with user_)
+            'user_name', 'user_company', 'user_email'
+        ];
+        allKeys.forEach(function(k) {
             var el = document.getElementById('s_' + k);
             if (el) body[k] = el.value;
         });
         try {
             await api('settings', { method: 'POST', body: body });
             toast('Einstellungen gespeichert', 'success');
+            // Update sidebar name
+            var nameEl = document.getElementById('s_user_name');
+            if (nameEl && nameEl.value) {
+                var sidebarName = document.querySelector('.user-name');
+                if (sidebarName) sidebarName.textContent = nameEl.value;
+            }
         } catch (e) { toast(e.message, 'error'); }
     }
 

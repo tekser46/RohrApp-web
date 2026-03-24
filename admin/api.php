@@ -515,14 +515,43 @@ switch ($action) {
             foreach ($db->query("SELECT * FROM settings") as $row) {
                 $settings[$row['key']] = $row['value'];
             }
+            // Also return current user's personal info
+            $uid  = $_SESSION['rohrapp_user']['id'] ?? 0;
+            $uRow = $db->prepare("SELECT name, company, email, avatar FROM users WHERE id = ?");
+            $uRow->execute([$uid]);
+            $uRow = $uRow->fetch();
+            $settings['user_name']    = $uRow['name']    ?? '';
+            $settings['user_company'] = $uRow['company'] ?? '';
+            $settings['user_email']   = $uRow['email']   ?? '';
+            $settings['user_avatar']  = $uRow['avatar']  ?? '';
             jsonResponse($settings);
         }
 
         if ($method === 'POST') {
             $body = getBody();
-            $stmt = $db->prepare("INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)");
+
+            // Split: user personal fields vs settings key-value
+            $userFieldMap = ['user_name' => 'name', 'user_company' => 'company', 'user_email' => 'email'];
+            $uFields = []; $uParams = [];
+            foreach ($userFieldMap as $bodyKey => $colName) {
+                if (array_key_exists($bodyKey, $body)) {
+                    $uFields[] = "$colName = ?";
+                    $uParams[] = trim($body[$bodyKey]);
+                    unset($body[$bodyKey]);
+                }
+            }
+            if ($uFields) {
+                $uParams[] = $_SESSION['rohrapp_user']['id'];
+                $db->prepare("UPDATE users SET " . implode(', ', $uFields) . " WHERE id = ?")->execute($uParams);
+                if (isset($body_saved['user_name'])) $_SESSION['rohrapp_user']['name'] = trim($body_saved['user_name']);
+            }
+
+            // Save remaining as settings (MySQL: INSERT … ON DUPLICATE KEY UPDATE)
+            $stmt = $db->prepare("INSERT INTO settings (`key`, `value`) VALUES (?, ?) ON DUPLICATE KEY UPDATE `value` = VALUES(`value`)");
+            $allowed = ['company_name','company_email','company_phone','company_address','company_zip','company_city',
+                        'chat_bot_enabled','chat_bot_greeting','chat_bot_prompt','idle_timeout','notification_sound','theme'];
             foreach ($body as $k => $v) {
-                $stmt->execute([$k, $v]);
+                if (in_array($k, $allowed)) $stmt->execute([$k, $v]);
             }
             jsonResponse(['success' => true]);
         }
