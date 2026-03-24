@@ -103,7 +103,7 @@ $perms = [
         </nav>
 
         <div class="sidebar-footer">
-            <div class="user-info">
+            <div class="user-info" onclick="App.openProfile()" title="Profil bearbeiten" style="cursor:pointer;flex:1">
                 <div class="user-avatar"><?= strtoupper(substr($user['name'] ?? $user['username'], 0, 1)) ?></div>
                 <div class="user-details">
                     <div class="user-name"><?= htmlspecialchars($user['name'] ?? $user['username']) ?></div>
@@ -129,6 +129,57 @@ $perms = [
 
     <!-- Mobile overlay -->
     <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+    <!-- Profile Modal -->
+    <div class="modal-overlay" id="profileModal" style="display:none" onclick="if(event.target===this)App.closeProfile()">
+        <div class="modal" style="max-width:440px">
+            <div class="modal-header">
+                <h3 class="modal-title">Mein Profil</h3>
+                <button class="modal-close" onclick="App.closeProfile()">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div style="display:flex;align-items:center;gap:16px;margin-bottom:24px;padding:16px;background:var(--bg-secondary);border-radius:12px">
+                    <div class="user-avatar" style="width:52px;height:52px;font-size:22px;flex-shrink:0"><?= strtoupper(substr($user['name'] ?? $user['username'], 0, 1)) ?></div>
+                    <div>
+                        <div style="font-weight:600;font-size:16px"><?= htmlspecialchars($user['name'] ?? $user['username']) ?></div>
+                        <div style="font-size:13px;color:var(--text-muted)"><?= htmlspecialchars($user['username']) ?> · <?= htmlspecialchars(ucfirst($user['role'])) ?></div>
+                    </div>
+                </div>
+
+                <div style="border-bottom:1px solid var(--border);margin-bottom:20px;padding-bottom:4px">
+                    <span style="font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;color:var(--text-muted)">Profil bearbeiten</span>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Name</label>
+                    <input class="form-input" type="text" id="profile_name" value="<?= htmlspecialchars($user['name'] ?? '') ?>" placeholder="Vollständiger Name">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">E-Mail</label>
+                    <input class="form-input" type="email" id="profile_email" value="<?= htmlspecialchars($user['email'] ?? '') ?>" placeholder="E-Mail Adresse">
+                </div>
+                <button class="btn btn-primary" style="width:100%;margin-bottom:24px" onclick="App.saveProfileInfo()">Profil speichern</button>
+
+                <div style="border-bottom:1px solid var(--border);margin-bottom:20px;padding-bottom:4px">
+                    <span style="font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;color:var(--text-muted)">Passwort ändern</span>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Aktuelles Passwort</label>
+                    <input class="form-input" type="password" id="profile_pw_current" placeholder="••••••••">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Neues Passwort</label>
+                    <input class="form-input" type="password" id="profile_pw_new" placeholder="Min. 8 Zeichen">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Neues Passwort bestätigen</label>
+                    <input class="form-input" type="password" id="profile_pw_confirm" placeholder="Wiederholen">
+                </div>
+                <button class="btn btn-danger" style="width:100%" onclick="App.saveProfilePassword()">Passwort ändern</button>
+            </div>
+        </div>
+    </div>
 
     <!-- Main content area -->
     <main class="main-content" id="mainContent">

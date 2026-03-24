@@ -925,6 +925,52 @@ const App = (function() {
     }
 
     // ══════════════════════════════════════
+    // PROFILE MODAL (all users)
+    // ══════════════════════════════════════
+    function openProfile() {
+        var modal = document.getElementById('profileModal');
+        if (modal) modal.style.display = 'flex';
+    }
+
+    function closeProfile() {
+        var modal = document.getElementById('profileModal');
+        if (modal) modal.style.display = 'none';
+    }
+
+    async function saveProfileInfo() {
+        var name  = document.getElementById('profile_name').value.trim();
+        var email = document.getElementById('profile_email').value.trim();
+        if (!name) { toast('Name darf nicht leer sein', 'error'); return; }
+        try {
+            await api('me', { method: 'POST', body: { name: name, email: email } });
+            // Update sidebar display
+            var nameEl = document.querySelector('.sidebar-footer .user-name');
+            if (nameEl) nameEl.textContent = name;
+            var avatarEl = document.querySelector('.sidebar-footer .user-avatar');
+            if (avatarEl) avatarEl.textContent = name.charAt(0).toUpperCase();
+            window.ROHRAPP_USER.name = name;
+            toast('Profil gespeichert', 'success');
+        } catch (e) { toast(e.message, 'error'); }
+    }
+
+    async function saveProfilePassword() {
+        var current = document.getElementById('profile_pw_current').value;
+        var newPw   = document.getElementById('profile_pw_new').value;
+        var confirm = document.getElementById('profile_pw_confirm').value;
+        if (!current || !newPw || !confirm) { toast('Alle Felder ausfüllen', 'error'); return; }
+        if (newPw.length < 8) { toast('Mindestens 8 Zeichen', 'error'); return; }
+        if (newPw !== confirm) { toast('Passwörter stimmen nicht überein', 'error'); return; }
+        try {
+            await api('change-password', { method: 'POST', body: { current: current, 'new': newPw } });
+            toast('Passwort geändert ✓', 'success');
+            document.getElementById('profile_pw_current').value = '';
+            document.getElementById('profile_pw_new').value = '';
+            document.getElementById('profile_pw_confirm').value = '';
+            setTimeout(closeProfile, 1200);
+        } catch (e) { toast(e.message, 'error'); }
+    }
+
+    // ══════════════════════════════════════
     // USERS (Admin only)
     // ══════════════════════════════════════
     async function renderUsers() {
@@ -1239,6 +1285,10 @@ const App = (function() {
         hasAccess: hasAccess,
         checkForUpdate: checkForUpdate,
         doUpdate: doUpdate,
+        openProfile: openProfile,
+        closeProfile: closeProfile,
+        saveProfileInfo: saveProfileInfo,
+        saveProfilePassword: saveProfilePassword,
         toast: toast
     };
 

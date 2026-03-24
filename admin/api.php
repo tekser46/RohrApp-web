@@ -149,6 +149,23 @@ switch ($action) {
 
     case 'me':
         requireAuth();
+        if ($method === 'POST') {
+            $body  = getBody();
+            $db    = getDB();
+            $uid   = $_SESSION['rohrapp_user']['id'];
+            $fields = [];
+            $params = [];
+            if (!empty($body['name']))  { $fields[] = 'name=?';  $params[] = trim($body['name']); }
+            if (!empty($body['email'])) { $fields[] = 'email=?'; $params[] = trim($body['email']); }
+            if ($fields) {
+                $params[] = $uid;
+                $db->prepare("UPDATE users SET " . implode(',', $fields) . " WHERE id=?")->execute($params);
+                // Update session
+                if (!empty($body['name']))  $_SESSION['rohrapp_user']['name']  = trim($body['name']);
+                if (!empty($body['email'])) $_SESSION['rohrapp_user']['email'] = trim($body['email']);
+            }
+            jsonResponse(['success' => true, 'user' => $_SESSION['rohrapp_user']]);
+        }
         jsonResponse(['user' => $_SESSION['rohrapp_user']]);
         break;
 
