@@ -330,7 +330,14 @@ switch ($action) {
 
     case 'sipgate-webhook':
         // No auth — Sipgate posts directly
-        if ($method !== 'POST') jsonResponse(['error' => 'POST erforderlich'], 405);
+        // GET = URL verification ping → return 200 OK
+        if ($method === 'GET') {
+            http_response_code(200);
+            echo json_encode(['status' => 'ok', 'webhook' => 'RohrApp+ Sipgate Webhook']);
+            exit;
+        }
+
+        $webhookUrl = APP_URL . '/admin/app-api.php?action=sipgate-webhook';
         $db = getDB();
 
         // Sipgate sends application/x-www-form-urlencoded
@@ -340,30 +347,49 @@ switch ($action) {
         $to        = $_POST['to']        ?? '';
         $direction = ($_POST['direction'] ?? '') === 'out' ? 'out' : 'in';
         $cause     = $_POST['cause']     ?? '';
+        $fullName  = $_POST['fullName']  ?? ''; // Display name from Sipgate phonebook
 
-        // Caller name from Sipgate user array
-        $callerName = '';
-        if (!empty($_POST['user'])) {
+        // callerName: fullName (phonebook) or user[] (your SIP user name)
+        $callerName = $fullName;
+        if (!$callerName && !empty($_POST['user'])) {
             $users = is_array($_POST['user']) ? $_POST['user'] : [$_POST['user']];
             $callerName = implode(', ', $users);
         }
 
+        if (!$callId) {
+            jsonResponse(['success' => true]); // ignore malformed
+        }
+
         switch ($event) {
             case 'newCall':
-                // Find matching customer
-                $cleanFrom = preg_replace('/[^+0-9]/', '', $from);
-                $custStmt  = $db->prepare("SELECT id, name FROM customers WHERE REPLACE(REPLACE(phone, ' ', ''), '-', '') = ? LIMIT 1");
-                $custStmt->execute([$cleanFrom]);
-                $customer = $custStmt->fetch();
+                // Clean number for customer lookup (+49176... or 049176...)
+                $cleanFrom = preg_replace('/[^0-9]/', '', $from);
+                // Try both +49 and 0049 and 0 prefix variants
+                $variants = [$from, '+' . $cleanFrom, '0' . ltrim($cleanFrom, '49')];
+
+                $customer = null;
+                foreach ($variants as $variant) {
+                    $stmt = $db->prepare("SELECT id, name FROM customers WHERE REPLACE(REPLACE(REPLACE(phone,' ',''),'-',''),'/','') = ? LIMIT 1");
+                    $stmt->execute([preg_replace('/[^+0-9]/', '', $variant)]);
+                    $customer = $stmt->fetch();
+                    if ($customer) break;
+                }
+
+                // Use customer name if no fullName from Sipgate
+                if (!$callerName && $customer) {
+                    $callerName = $customer['name'];
+                }
 
                 $db->prepare("INSERT INTO sipgate_calls (call_id, direction, from_number, to_number, caller_name, status, customer_id, created_at)
                     VALUES (?, ?, ?, ?, ?, 'new', ?, NOW())
-                    ON DUPLICATE KEY UPDATE status='new'")
-                   ->execute([$callId, $direction, $from, $to, $callerName ?: ($customer['name'] ?? ''), $customer['id'] ?? null]);
+                    ON DUPLICATE KEY UPDATE status='new', caller_name=VALUES(caller_name)")
+                   ->execute([$callId, $direction, $from, $to, $callerName, $customer['id'] ?? null]);
 
-                // Return Sipgate XML response (accept call)
-                header('Content-Type: application/xml');
-                echo '<?xml version="1.0" encoding="UTF-8"?><Response onHangup="' . htmlspecialchars(APP_URL . '/admin/app-api.php?action=sipgate-webhook') . '" onAnswer="' . htmlspecialchars(APP_URL . '/admin/app-api.php?action=sipgate-webhook') . '"></Response>';
+                // Return Sipgate XML — registers onHangup + onAnswer callbacks
+                header('Content-Type: application/xml; charset=UTF-8');
+                echo '<?xml version="1.0" encoding="UTF-8"?>' . "\n";
+                echo '<Response onHangup="' . htmlspecialchars($webhookUrl) . '" onAnswer="' . htmlspecialchars($webhookUrl) . '">';
+                echo '</Response>';
                 exit;
 
             case 'onAnswer':
@@ -374,25 +400,31 @@ switch ($action) {
             case 'onHangup':
                 $status = 'missed';
                 if ($cause === 'normalClearing') $status = 'answered';
-                elseif (in_array($cause, ['cancel','noanswer'])) $status = 'missed';
+                elseif (in_array($cause, ['cancel', 'noanswer'])) $status = 'missed';
                 elseif ($cause === 'busy') $status = 'rejected';
+                elseif ($cause === 'forwarded') $status = 'answered';
 
-                // Compute duration
-                $call = $db->prepare("SELECT answered_at FROM sipgate_calls WHERE call_id=?");
-                $call->execute([$callId]);
-                $callRow  = $call->fetch();
+                // Duration: from answered_at to now
+                $callRow = $db->prepare("SELECT answered_at FROM sipgate_calls WHERE call_id=?");
+                $callRow->execute([$callId]);
+                $callRow  = $callRow->fetch();
                 $duration = 0;
-                if ($callRow && $callRow['answered_at']) {
+                if ($callRow && $callRow['answered_at'] && $status === 'answered') {
                     $duration = max(0, time() - strtotime($callRow['answered_at']));
                 }
 
                 $db->prepare("UPDATE sipgate_calls SET status=?, duration=?, ended_at=NOW() WHERE call_id=?")
                    ->execute([$status, $duration, $callId]);
                 break;
+
+            default:
+                // Unknown event — just acknowledge
+                break;
         }
 
-        jsonResponse(['success' => true]);
-        break;
+        http_response_code(200);
+        echo json_encode(['success' => true]);
+        exit;
 
     case 'sipgate-calls':
         $user = requireAppAuth();
