@@ -312,6 +312,38 @@ try {
             FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE SET NULL
         ) ENGINE=InnoDB");
 
+        // ── Requests (Paket-Upgrade & Numara Talepleri) ──
+        $pdo->exec("CREATE TABLE requests (
+            id           INT AUTO_INCREMENT PRIMARY KEY,
+            user_id      INT NOT NULL,
+            type         ENUM('package_upgrade','number_request') NOT NULL,
+            status       ENUM('pending','approved','rejected') DEFAULT 'pending',
+            current_plan VARCHAR(50),
+            requested_plan VARCHAR(50),
+            number_count INT DEFAULT 0,
+            message      TEXT,
+            admin_note   TEXT,
+            created_at   DATETIME DEFAULT CURRENT_TIMESTAMP,
+            updated_at   DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            INDEX idx_user (user_id),
+            INDEX idx_type (type),
+            INDEX idx_status (status),
+            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+        ) ENGINE=InnoDB");
+
+        // ── Sipgate Numbers (Admin assigns to users) ──
+        $pdo->exec("CREATE TABLE sipgate_numbers (
+            id          INT AUTO_INCREMENT PRIMARY KEY,
+            user_id     INT NOT NULL,
+            number      VARCHAR(50) NOT NULL,
+            label       VARCHAR(200),
+            block_name  VARCHAR(200),
+            is_active   TINYINT(1) DEFAULT 1,
+            assigned_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            INDEX idx_user (user_id),
+            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+        ) ENGINE=InnoDB");
+
         // ── Default Users (one per role) ──
         $pdo->prepare("INSERT INTO users (username, password_hash, role, name, email) VALUES (?, ?, 'admin', ?, ?)")
            ->execute(['admin', password_hash('admin123', PASSWORD_BCRYPT), 'Administrator', 'admin@rohrapp.de']);

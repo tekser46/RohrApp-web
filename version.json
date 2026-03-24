@@ -1,7 +1,7 @@
 {
-    "version": "1.5.0",
+    "version": "1.6.0",
     "name": "RohrApp+",
     "build": "2026-03-24",
     "channel": "stable",
-    "changelog": "Einstellungen: Profil + PLZ/Stadt, Lizenzverwaltung, Registrierungsseite"
+    "changelog": "Lizenzen, Einstellungen (Profil/Logo/Sipgate/Nummern), Anfragen, Email-Talep-System"
 }

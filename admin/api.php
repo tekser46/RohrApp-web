@@ -507,7 +507,7 @@ switch ($action) {
     // SETTINGS
     // ════════════════════════════════════════
     case 'settings':
-        requireRole(['admin', 'enterprise']);
+        requireAuth();
         $db = getDB();
 
         if ($method === 'GET') {
@@ -838,10 +838,304 @@ switch ($action) {
             'customers' => true,
             'customers_write' => true,
             'games' => true,
-            'settings' => in_array($role, ['admin', 'enterprise']),
+            'licenses' => true,
+            'settings' => true,
             'users' => $role === 'admin',
+            'requests' => $role === 'admin',
         ];
         jsonResponse(['role' => $role, 'permissions' => $perms]);
+        break;
+
+    // ════════════════════════════════════════
+    // MY LICENSE (Kullanıcının kendi lisansı)
+    // ════════════════════════════════════════
+    case 'my-license':
+        requireAuth();
+        $db = getDB();
+        $userId = $_SESSION['rohrapp_user']['id'];
+        $stmt = $db->prepare("
+            SELECT l.*, u.name, u.email, u.company, u.role
+            FROM licenses l
+            JOIN users u ON u.id = l.user_id
+            WHERE l.user_id = ?
+        ");
+        $stmt->execute([$userId]);
+        $license = $stmt->fetch();
+        if (!$license) jsonResponse(['error' => 'Keine Lizenz gefunden'], 404);
+        jsonResponse($license);
+        break;
+
+    // ════════════════════════════════════════
+    // REQUEST UPGRADE (Paket yükseltme talebi + email)
+    // ════════════════════════════════════════
+    case 'request-upgrade':
+        requireAuth();
+        if ($method !== 'POST') jsonResponse(['error' => 'POST erforderlich'], 405);
+        $db = getDB();
+        $body = getBody();
+        $userId = $_SESSION['rohrapp_user']['id'];
+        $requestedPlan = $body['requested_plan'] ?? '';
+        $message = trim($body['message'] ?? '');
+
+        if (!in_array($requestedPlan, ['professional', 'enterprise'])) {
+            jsonResponse(['error' => 'Ungültiger Plan'], 400);
+        }
+
+        // Get user + license info
+        $stmt = $db->prepare("
+            SELECT u.name, u.email, u.company, u.role, l.plan AS current_plan, l.expires_at, l.trial_ends, l.status AS license_status
+            FROM users u LEFT JOIN licenses l ON l.user_id = u.id WHERE u.id = ?
+        ");
+        $stmt->execute([$userId]);
+        $user = $stmt->fetch();
+        if (!$user) jsonResponse(['error' => 'Benutzer nicht gefunden'], 404);
+
+        $currentPlan = $user['current_plan'] ?? 'starter';
+
+        // Save request to DB
+        $db->prepare("INSERT INTO requests (user_id, type, current_plan, requested_plan, message) VALUES (?, 'package_upgrade', ?, ?, ?)")
+           ->execute([$userId, $currentPlan, $requestedPlan, $message]);
+
+        // Calculate remaining license time
+        $remaining = '';
+        if ($currentPlan !== 'starter') {
+            $expiresAt = $user['expires_at'] ?? $user['trial_ends'];
+            if ($expiresAt) {
+                $diff = (new DateTime($expiresAt))->diff(new DateTime());
+                if ($diff->invert) {
+                    $remaining = $diff->days . ' Tage';
+                } else {
+                    $remaining = 'Abgelaufen';
+                }
+            }
+        }
+
+        // Build email
+        $planLabels = ['starter' => 'Starter (Kostenlos)', 'professional' => 'Professional (49€/Monat)', 'enterprise' => 'Enterprise (99€/Monat)'];
+        $emailBody = "<!DOCTYPE html><html><body style='font-family:Segoe UI,Arial,sans-serif;background:#f1f5f9;margin:0;padding:20px'>
+<div style='max-width:600px;margin:0 auto;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,0.08)'>
+  <div style='background:linear-gradient(135deg,#0066a1,#004d7a);padding:32px 28px;text-align:center'>
+    <h1 style='color:#fff;margin:0;font-size:22px'>📦 Paket-Upgrade Anfrage</h1>
+  </div>
+  <div style='padding:28px'>
+    <table style='width:100%;border-collapse:collapse;font-size:14px'>
+      <tr><td style='padding:10px 0;color:#64748b;font-weight:600;width:160px'>Name</td><td style='padding:10px 0;color:#1e293b;font-weight:700'>" . htmlspecialchars($user['name'] ?? '') . "</td></tr>
+      <tr style='border-top:1px solid #f1f5f9'><td style='padding:10px 0;color:#64748b;font-weight:600'>E-Mail</td><td style='padding:10px 0;color:#1e293b'>" . htmlspecialchars($user['email'] ?? '') . "</td></tr>
+      <tr style='border-top:1px solid #f1f5f9'><td style='padding:10px 0;color:#64748b;font-weight:600'>Firma</td><td style='padding:10px 0;color:#1e293b'>" . htmlspecialchars($user['company'] ?? '-') . "</td></tr>
+      <tr style='border-top:1px solid #f1f5f9'><td style='padding:10px 0;color:#64748b;font-weight:600'>Aktueller Plan</td><td style='padding:10px 0'><span style='background:#fef3c7;color:#92400e;padding:4px 12px;border-radius:6px;font-weight:600;font-size:13px'>" . htmlspecialchars($planLabels[$currentPlan] ?? $currentPlan) . "</span></td></tr>
+      <tr style='border-top:1px solid #f1f5f9'><td style='padding:10px 0;color:#64748b;font-weight:600'>Gewünschter Plan</td><td style='padding:10px 0'><span style='background:#d1fae5;color:#065f46;padding:4px 12px;border-radius:6px;font-weight:600;font-size:13px'>" . htmlspecialchars($planLabels[$requestedPlan] ?? $requestedPlan) . "</span></td></tr>"
+      . ($remaining && $currentPlan !== 'starter' ? "<tr style='border-top:1px solid #f1f5f9'><td style='padding:10px 0;color:#64748b;font-weight:600'>Restlaufzeit</td><td style='padding:10px 0;color:#1e293b;font-weight:600'>{$remaining}</td></tr>" : "")
+      . ($message ? "<tr style='border-top:1px solid #f1f5f9'><td style='padding:10px 0;color:#64748b;font-weight:600'>Nachricht</td><td style='padding:10px 0;color:#1e293b'>" . nl2br(htmlspecialchars($message)) . "</td></tr>" : "")
+      . "</table>
+    <div style='margin-top:24px;padding:16px;background:#f8fafc;border-radius:8px;text-align:center;color:#64748b;font-size:12px'>
+      Gesendet am " . date('d.m.Y \u\m H:i') . " Uhr via RohrApp+
+    </div>
+  </div>
+</div></body></html>";
+
+        $mailHeaders = "MIME-Version: 1.0\r\nContent-Type: text/html; charset=UTF-8\r\nFrom: RohrApp+ <noreply@rohrapp.de>\r\nReply-To: " . ($user['email'] ?? '') . "\r\nX-Mailer: RohrApp+";
+        @mail('lizenz@rohrapp.de', '=?UTF-8?B?' . base64_encode("Paket-Upgrade Anfrage: " . ($user['name'] ?? 'Unbekannt')) . '?=', $emailBody, $mailHeaders);
+
+        jsonResponse(['success' => true, 'message' => 'Upgrade-Anfrage wurde gesendet']);
+        break;
+
+    // ════════════════════════════════════════
+    // REQUEST NUMBERS (Numara talebi + email)
+    // ════════════════════════════════════════
+    case 'request-numbers':
+        requireAuth();
+        if ($method !== 'POST') jsonResponse(['error' => 'POST erforderlich'], 405);
+        $db = getDB();
+        $body = getBody();
+        $userId = $_SESSION['rohrapp_user']['id'];
+        $count = intval($body['count'] ?? 1);
+        $message = trim($body['message'] ?? '');
+
+        if ($count < 1 || $count > 100) jsonResponse(['error' => 'Ungültige Anzahl (1-100)'], 400);
+
+        $stmt = $db->prepare("SELECT u.name, u.email, u.company FROM users u WHERE u.id = ?");
+        $stmt->execute([$userId]);
+        $user = $stmt->fetch();
+
+        $db->prepare("INSERT INTO requests (user_id, type, number_count, message) VALUES (?, 'number_request', ?, ?)")
+           ->execute([$userId, $count, $message]);
+
+        $emailBody = "<!DOCTYPE html><html><body style='font-family:Segoe UI,Arial,sans-serif;background:#f1f5f9;margin:0;padding:20px'>
+<div style='max-width:600px;margin:0 auto;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,0.08)'>
+  <div style='background:linear-gradient(135deg,#0066a1,#004d7a);padding:32px 28px;text-align:center'>
+    <h1 style='color:#fff;margin:0;font-size:22px'>📞 Neue Nummer-Anfrage</h1>
+  </div>
+  <div style='padding:28px'>
+    <table style='width:100%;border-collapse:collapse;font-size:14px'>
+      <tr><td style='padding:10px 0;color:#64748b;font-weight:600;width:160px'>Name</td><td style='padding:10px 0;color:#1e293b;font-weight:700'>" . htmlspecialchars($user['name'] ?? '') . "</td></tr>
+      <tr style='border-top:1px solid #f1f5f9'><td style='padding:10px 0;color:#64748b;font-weight:600'>E-Mail</td><td style='padding:10px 0;color:#1e293b'>" . htmlspecialchars($user['email'] ?? '') . "</td></tr>
+      <tr style='border-top:1px solid #f1f5f9'><td style='padding:10px 0;color:#64748b;font-weight:600'>Firma</td><td style='padding:10px 0;color:#1e293b'>" . htmlspecialchars($user['company'] ?? '-') . "</td></tr>
+      <tr style='border-top:1px solid #f1f5f9'><td style='padding:10px 0;color:#64748b;font-weight:600'>Anzahl Nummern</td><td style='padding:10px 0'><span style='background:#dbeafe;color:#1e40af;padding:4px 14px;border-radius:6px;font-weight:700;font-size:16px'>" . $count . "</span></td></tr>"
+      . ($message ? "<tr style='border-top:1px solid #f1f5f9'><td style='padding:10px 0;color:#64748b;font-weight:600'>Nachricht</td><td style='padding:10px 0;color:#1e293b'>" . nl2br(htmlspecialchars($message)) . "</td></tr>" : "")
+      . "</table>
+    <div style='margin-top:24px;padding:16px;background:#f8fafc;border-radius:8px;text-align:center;color:#64748b;font-size:12px'>
+      Gesendet am " . date('d.m.Y \u\m H:i') . " Uhr via RohrApp+
+    </div>
+  </div>
+</div></body></html>";
+
+        $mailHeaders = "MIME-Version: 1.0\r\nContent-Type: text/html; charset=UTF-8\r\nFrom: RohrApp+ <noreply@rohrapp.de>\r\nReply-To: " . ($user['email'] ?? '') . "\r\nX-Mailer: RohrApp+";
+        @mail('lizenz@rohrapp.de', '=?UTF-8?B?' . base64_encode("Nummer-Anfrage: " . ($user['name'] ?? 'Unbekannt') . " (" . $count . " Nummern)") . '?=', $emailBody, $mailHeaders);
+
+        jsonResponse(['success' => true, 'message' => 'Nummer-Anfrage wurde gesendet']);
+        break;
+
+    // ════════════════════════════════════════
+    // MY PROFILE (Kullanıcı kendi profilini güncelle)
+    // ════════════════════════════════════════
+    case 'my-profile':
+        requireAuth();
+        $db = getDB();
+        $userId = $_SESSION['rohrapp_user']['id'];
+
+        if ($method === 'GET') {
+            $stmt = $db->prepare("SELECT id, username, name, company, email, phone, zip, city, address, avatar, company_logo, has_sipgate, sipgate_webhook_url FROM users WHERE id = ?");
+            $stmt->execute([$userId]);
+            jsonResponse($stmt->fetch());
+        }
+
+        if ($method === 'POST' || $method === 'PUT') {
+            $body = getBody();
+            $fields = [];
+            $params = [];
+            $allowed = ['name', 'company', 'email', 'phone', 'zip', 'city', 'address', 'has_sipgate'];
+            foreach ($allowed as $f) {
+                if (isset($body[$f])) {
+                    $fields[] = "$f = ?";
+                    $params[] = $body[$f];
+                }
+            }
+            if (empty($fields)) jsonResponse(['error' => 'Keine Änderungen'], 400);
+            $params[] = $userId;
+            $db->prepare("UPDATE users SET " . implode(', ', $fields) . " WHERE id = ?")->execute($params);
+
+            // Update session
+            $stmt = $db->prepare("SELECT * FROM users WHERE id = ?");
+            $stmt->execute([$userId]);
+            $_SESSION['rohrapp_user'] = $stmt->fetch();
+
+            jsonResponse(['success' => true]);
+        }
+        break;
+
+    // ════════════════════════════════════════
+    // MY SIPGATE NUMBERS (Kullanıcıya atanan numaralar)
+    // ════════════════════════════════════════
+    case 'my-sipgate-numbers':
+        requireAuth();
+        $db = getDB();
+        $userId = $_SESSION['rohrapp_user']['id'];
+        $numbers = $db->prepare("SELECT * FROM sipgate_numbers WHERE user_id = ? ORDER BY assigned_at DESC");
+        $numbers->execute([$userId]);
+        jsonResponse(['numbers' => $numbers->fetchAll()]);
+        break;
+
+    // ════════════════════════════════════════
+    // SIPGATE NUMBERS (Admin — numara ata/sil)
+    // ════════════════════════════════════════
+    case 'sipgate-numbers':
+        requireRole('admin');
+        $db = getDB();
+
+        if ($method === 'GET') {
+            $userId = intval($_GET['user_id'] ?? 0);
+            $where = $userId ? "WHERE sn.user_id = $userId" : "";
+            $numbers = $db->query("SELECT sn.*, u.name AS user_name FROM sipgate_numbers sn JOIN users u ON u.id = sn.user_id $where ORDER BY sn.assigned_at DESC")->fetchAll();
+            jsonResponse(['numbers' => $numbers]);
+        }
+
+        if ($method === 'POST') {
+            $body = getBody();
+            $userId = intval($body['user_id'] ?? 0);
+            $numbers = $body['numbers'] ?? [];
+            $blockName = trim($body['block_name'] ?? '');
+
+            if (!$userId) jsonResponse(['error' => 'user_id erforderlich'], 400);
+            if (empty($numbers)) jsonResponse(['error' => 'Mindestens eine Nummer erforderlich'], 400);
+
+            $stmt = $db->prepare("INSERT INTO sipgate_numbers (user_id, number, label, block_name) VALUES (?, ?, ?, ?)");
+            foreach ($numbers as $n) {
+                $num = is_array($n) ? ($n['number'] ?? '') : $n;
+                $label = is_array($n) ? ($n['label'] ?? '') : '';
+                if ($num) $stmt->execute([$userId, $num, $label, $blockName]);
+            }
+            jsonResponse(['success' => true]);
+        }
+
+        if ($method === 'DELETE') {
+            $id = intval($_GET['id'] ?? 0);
+            if (!$id) jsonResponse(['error' => 'ID erforderlich'], 400);
+            $db->prepare("DELETE FROM sipgate_numbers WHERE id = ?")->execute([$id]);
+            jsonResponse(['success' => true]);
+        }
+        break;
+
+    // ════════════════════════════════════════
+    // REQUESTS (Admin — talep listesi)
+    // ════════════════════════════════════════
+    case 'requests':
+        requireRole('admin');
+        $db = getDB();
+
+        if ($method === 'GET') {
+            $requests = $db->query("
+                SELECT r.*, u.name AS user_name, u.email AS user_email, u.company AS user_company
+                FROM requests r
+                JOIN users u ON u.id = r.user_id
+                ORDER BY r.created_at DESC
+            ")->fetchAll();
+            jsonResponse(['requests' => $requests]);
+        }
+
+        if ($method === 'PUT' || $method === 'POST') {
+            $body = getBody();
+            $id = intval($body['id'] ?? $_GET['id'] ?? 0);
+            $status = $body['status'] ?? '';
+            $adminNote = $body['admin_note'] ?? '';
+
+            if (!$id || !in_array($status, ['approved', 'rejected'])) {
+                jsonResponse(['error' => 'Ungültige Anfrage'], 400);
+            }
+            $db->prepare("UPDATE requests SET status = ?, admin_note = ? WHERE id = ?")
+               ->execute([$status, $adminNote, $id]);
+            jsonResponse(['success' => true]);
+        }
+        break;
+
+    // ════════════════════════════════════════
+    // UPLOAD AVATAR / LOGO
+    // ════════════════════════════════════════
+    case 'upload-avatar':
+    case 'upload-logo':
+        requireAuth();
+        $field = $action === 'upload-avatar' ? 'avatar' : 'company_logo';
+        $uploadDir = dirname(__DIR__) . '/uploads/';
+        if (!is_dir($uploadDir)) mkdir($uploadDir, 0755, true);
+
+        if (empty($_FILES['file'])) jsonResponse(['error' => 'Keine Datei hochgeladen'], 400);
+        $file = $_FILES['file'];
+        $allowed = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+        if (!in_array($file['type'], $allowed)) jsonResponse(['error' => 'Nur Bilder erlaubt (JPG, PNG, GIF, WebP)'], 400);
+        if ($file['size'] > 5 * 1024 * 1024) jsonResponse(['error' => 'Datei zu groß (max 5MB)'], 400);
+
+        $ext = pathinfo($file['name'], PATHINFO_EXTENSION);
+        $filename = $field . '_' . $_SESSION['rohrapp_user']['id'] . '_' . time() . '.' . $ext;
+        $dest = $uploadDir . $filename;
+
+        if (!move_uploaded_file($file['tmp_name'], $dest)) {
+            jsonResponse(['error' => 'Upload fehlgeschlagen'], 500);
+        }
+
+        $url = '../uploads/' . $filename;
+        $db = getDB();
+        $db->prepare("UPDATE users SET $field = ? WHERE id = ?")->execute([$url, $_SESSION['rohrapp_user']['id']]);
+
+        jsonResponse(['success' => true, 'url' => $url]);
         break;
 
     // ════════════════════════════════════════

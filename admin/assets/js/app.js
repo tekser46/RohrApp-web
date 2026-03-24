@@ -80,7 +80,8 @@ const App = (function() {
         var titles = {
             dashboard: 'Dashboard', calls: 'Anrufe', emails: 'E-Mails',
             messages: 'Nachrichten', chat: 'Live Chat', customers: 'Kunden',
-            games: 'Spiele', settings: 'Einstellungen', users: 'Lizenzen'
+            games: 'Spiele', licenses: 'Lizenzen', settings: 'Einstellungen',
+            users: 'Benutzerverwaltung', requests: 'Anfragen'
         };
         var tb = document.getElementById('topbarTitle');
         if (tb) tb.textContent = titles[page] || page;
@@ -93,7 +94,7 @@ const App = (function() {
         content.innerHTML = '<div class="loading-page"><div class="spinner"></div></div>';
 
         // Permission check — redirect to dashboard if no access
-        var pagePerms = { messages: 'messages', chat: 'chat', settings: 'settings', users: 'users' };
+        var pagePerms = { messages: 'messages', chat: 'chat', settings: 'settings', users: 'users', requests: 'requests' };
         if (pagePerms[page] && !hasAccess(pagePerms[page])) {
             content.innerHTML = '<div class="empty-state" style="padding:80px 20px"><svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="var(--border)" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg><p style="font-size:16px;font-weight:600;margin:16px 0 8px">Keine Berechtigung</p><p>Ihr aktueller Tarif (<strong>' + esc(window.ROHRAPP_USER.role) + '</strong>) hat keinen Zugriff auf diese Funktion.</p><a href="' + (window.location.origin) + '/preise.html" class="btn btn-primary" style="margin-top:16px">Tarif upgraden</a></div>';
             return;
@@ -107,8 +108,10 @@ const App = (function() {
             case 'chat': renderChat(); break;
             case 'customers': renderCustomers(); break;
             case 'games': renderGames(); break;
-            case 'settings': renderSettings(); break;
+            case 'licenses': renderLicenses(); break;
+            case 'settings': renderMySettings(); break;
             case 'users': renderUsers(); break;
+            case 'requests': renderRequests(); break;
             default: renderDashboard();
         }
     }
@@ -777,82 +780,127 @@ const App = (function() {
     // ══════════════════════════════════════
     // SETTINGS
     // ══════════════════════════════════════
-    async function renderSettings() {
+    async function renderMySettings() {
         try {
             var data = await api('settings');
+            var profile = await api('my-profile');
+            var numbers = [];
+            try { var nd = await api('my-sipgate-numbers'); numbers = nd.numbers || []; } catch(e) {}
             var c = document.getElementById('pageContent');
-            // Avatar initial
-            var initial = (data.user_name || '?').charAt(0).toUpperCase();
+            var initial = (profile.name || '?').charAt(0).toUpperCase();
+            var avatarUrl = profile.avatar;
+            var logoUrl = profile.company_logo;
+            var hasSipgate = parseInt(profile.has_sipgate) === 1;
+            var webhookUrl = window.location.origin + '/admin/api.php?action=sipgate-webhook&key=' + (window.ROHRAPP_USER.id || '');
+
+            // Number rows
+            var numRows = '';
+            numbers.forEach(function(n) {
+                numRows += '<tr><td style="font-weight:600;font-family:monospace">' + esc(n.number) + '</td><td>' + esc(n.label || '-') + '</td><td>' + esc(n.block_name || '-') + '</td><td><span class="badge ' + (n.is_active ? 'badge-success' : 'badge-muted') + '">' + (n.is_active ? 'Aktiv' : 'Inaktiv') + '</span></td></tr>';
+            });
+
             c.innerHTML = `
-                <div class="page-header">
-                    <h1 class="page-title">Einstellungen</h1>
-                </div>
+                <div class="page-header"><h1 class="page-title">Einstellungen</h1></div>
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
 
-                    <!-- ── Profil & Firma ── -->
+                    <!-- ══ 1. Profil & Firma ══ -->
                     <div class="card" style="grid-column:1/-1">
-                        <div class="card-header" style="display:flex;align-items:center;gap:14px">
-                            <div style="width:48px;height:48px;border-radius:50%;background:var(--primary);color:#fff;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:700;flex-shrink:0">${esc(initial)}</div>
-                            <div>
-                                <div class="card-title" style="margin:0">${esc(data.user_name || 'Mein Profil')}</div>
-                                <div style="font-size:12px;color:var(--text-muted);margin-top:2px">${esc(data.user_email || '')}</div>
-                            </div>
-                        </div>
+                        <div class="card-header"><span class="card-title">Profil & Firma</span></div>
                         <div class="card-body">
-                            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px">
-                                <div class="form-group">
-                                    <label class="form-label">Name &amp; Nachname</label>
-                                    <input class="form-input" id="s_user_name" value="${esc(data.user_name || '')}">
+                            <div style="display:flex;gap:32px;margin-bottom:24px;flex-wrap:wrap">
+                                <div style="text-align:center">
+                                    <div style="font-size:11px;font-weight:600;color:var(--text-light);text-transform:uppercase;margin-bottom:8px">Profilbild</div>
+                                    <div style="position:relative;width:88px;height:88px;cursor:pointer" onclick="App.uploadAvatar()">
+                                        ${avatarUrl ? '<img id="profileAvatar" src="' + esc(avatarUrl) + '" style="width:88px;height:88px;border-radius:50%;object-fit:cover;border:3px solid var(--border)">' : '<div id="profileAvatar" style="width:88px;height:88px;border-radius:50%;background:var(--primary);color:#fff;display:flex;align-items:center;justify-content:center;font-size:36px;font-weight:700;border:3px solid var(--border)">' + esc(initial) + '</div>'}
+                                        <div style="position:absolute;bottom:0;right:0;width:28px;height:28px;border-radius:50%;background:var(--primary);color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;border:2px solid var(--bg-primary)">📷</div>
+                                    </div>
                                 </div>
-                                <div class="form-group">
-                                    <label class="form-label">Firmenname</label>
-                                    <input class="form-input" id="s_user_company" value="${esc(data.user_company || data.company_name || '')}">
-                                </div>
-                                <div class="form-group">
-                                    <label class="form-label">E-Mail</label>
-                                    <input class="form-input" id="s_user_email" value="${esc(data.user_email || '')}">
-                                </div>
-                                <div class="form-group">
-                                    <label class="form-label">Telefon</label>
-                                    <input class="form-input" id="s_company_phone" value="${esc(data.company_phone || '')}" placeholder="+49 ...">
-                                </div>
-                                <div class="form-group">
-                                    <label class="form-label">Straße &amp; Hausnummer</label>
-                                    <input class="form-input" id="s_company_address" value="${esc(data.company_address || '')}" placeholder="Musterstraße 1">
-                                </div>
-                                <div class="form-group">
-                                    <label class="form-label">PLZ &amp; Stadt</label>
-                                    <div style="display:flex;gap:8px">
-                                        <input class="form-input" id="s_company_zip"  value="${esc(data.company_zip  || '')}" placeholder="12345" style="max-width:90px">
-                                        <input class="form-input" id="s_company_city" value="${esc(data.company_city || '')}" placeholder="München">
+                                <div style="text-align:center">
+                                    <div style="font-size:11px;font-weight:600;color:var(--text-light);text-transform:uppercase;margin-bottom:8px">Firmenlogo</div>
+                                    <div style="position:relative;width:88px;height:88px;cursor:pointer" onclick="App.uploadLogo()">
+                                        ${logoUrl ? '<img id="companyLogo" src="' + esc(logoUrl) + '" style="width:88px;height:88px;border-radius:12px;object-fit:contain;border:2px dashed var(--border);padding:4px">' : '<div id="companyLogo" style="width:88px;height:88px;border-radius:12px;border:2px dashed var(--border);display:flex;align-items:center;justify-content:center;color:var(--text-light);font-size:11px;text-align:center;padding:8px">Logo<br>hochladen</div>'}
+                                        <div style="position:absolute;bottom:0;right:0;width:28px;height:28px;border-radius:50%;background:var(--primary);color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;border:2px solid var(--bg-primary)">📷</div>
                                     </div>
                                 </div>
                             </div>
-                            <div style="display:flex;gap:10px;margin-top:4px">
-                                <button class="btn btn-primary" onclick="App.saveSettings()">
-                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:5px"><polyline points="20 6 9 17 4 12"/></svg>
-                                    Speichern
+                            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px">
+                                <div class="form-group"><label class="form-label">Name & Nachname</label><input class="form-input" id="s_user_name" value="${esc(data.user_name || '')}"></div>
+                                <div class="form-group"><label class="form-label">Firmenname</label><input class="form-input" id="s_user_company" value="${esc(data.user_company || data.company_name || '')}"></div>
+                                <div class="form-group"><label class="form-label">E-Mail</label><input class="form-input" id="s_user_email" value="${esc(data.user_email || '')}"></div>
+                                <div class="form-group"><label class="form-label">Telefon</label><input class="form-input" id="s_company_phone" value="${esc(data.company_phone || '')}" placeholder="+49 ..."></div>
+                                <div class="form-group"><label class="form-label">Straße & Hausnummer</label><input class="form-input" id="s_company_address" value="${esc(data.company_address || '')}" placeholder="Musterstraße 1"></div>
+                                <div class="form-group"><label class="form-label">PLZ & Stadt</label><div style="display:flex;gap:8px"><input class="form-input" id="s_company_zip" value="${esc(data.company_zip || '')}" placeholder="12345" style="max-width:90px"><input class="form-input" id="s_company_city" value="${esc(data.company_city || '')}" placeholder="München"></div></div>
+                            </div>
+                            <button class="btn btn-primary" onclick="App.saveSettings()" style="margin-top:8px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:5px"><polyline points="20 6 9 17 4 12"/></svg>Speichern</button>
+                        </div>
+                    </div>
+
+                    <!-- ══ 2. Sipgate ══ -->
+                    <div class="card" style="grid-column:1/-1">
+                        <div class="card-header"><span class="card-title">Sipgate Konfiguration</span></div>
+                        <div class="card-body">
+                            <div style="display:flex;gap:12px;margin-bottom:20px">
+                                <button class="btn ${hasSipgate ? 'btn-primary' : 'btn-secondary'}" onclick="App.toggleSipgate(true)" style="flex:1;justify-content:center">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07"/></svg>
+                                    Sipgate Konto vorhanden
+                                </button>
+                                <button class="btn ${!hasSipgate ? 'btn-primary' : 'btn-secondary'}" onclick="App.toggleSipgate(false)" style="flex:1;justify-content:center">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+                                    Kein Sipgate Konto
                                 </button>
                             </div>
-                        </div>
-                    </div>
 
-                    <!-- ── Chat Bot ── -->
-                    <div class="card">
-                        <div class="card-header"><span class="card-title">Chat Bot</span></div>
-                        <div class="card-body">
-                            <div class="form-group"><label class="form-label">Bot aktiviert</label>
-                                <select class="form-select" id="s_chat_bot_enabled">
-                                    <option value="1" ${data.chat_bot_enabled==='1'?'selected':''}>Ja</option>
-                                    <option value="0" ${data.chat_bot_enabled==='0'?'selected':''}>Nein</option>
-                                </select>
+                            <!-- Has Sipgate Panel -->
+                            <div id="sipgateHasPanel" style="display:${hasSipgate ? 'block' : 'none'}">
+                                <div style="padding:20px;background:var(--bg-secondary);border-radius:12px;margin-bottom:16px">
+                                    <div style="font-size:13px;font-weight:700;margin-bottom:12px">🔗 Webhook-URL für Sipgate</div>
+                                    <div style="display:flex;gap:8px;align-items:center">
+                                        <input class="form-input" value="${esc(webhookUrl)}" readonly style="font-family:monospace;font-size:12px;flex:1" id="webhookUrlInput">
+                                        <button class="btn btn-primary btn-sm" onclick="navigator.clipboard.writeText(document.getElementById('webhookUrlInput').value);App.toast('Webhook-URL kopiert!','success')">Kopieren</button>
+                                    </div>
+                                    <div style="margin-top:14px;padding:14px;background:var(--bg-primary);border-radius:8px;font-size:12px;color:var(--text-light);line-height:1.7">
+                                        <strong style="color:var(--text-primary)">So richten Sie den Webhook ein:</strong><br>
+                                        1. Melden Sie sich bei <a href="https://app.sipgate.com" target="_blank" style="color:var(--primary)">app.sipgate.com</a> an<br>
+                                        2. Gehen Sie zu <strong>Einstellungen → Webhooks</strong><br>
+                                        3. Klicken Sie auf <strong>"Neuen Webhook erstellen"</strong><br>
+                                        4. Fügen Sie die obige URL als <strong>Webhook-URL</strong> ein<br>
+                                        5. Wählen Sie die Events: <strong>newCall, hangUp</strong><br>
+                                        6. Speichern Sie die Einstellung
+                                    </div>
+                                </div>
                             </div>
-                            <div class="form-group"><label class="form-label">Begrüßung</label><textarea class="form-textarea" id="s_chat_bot_greeting" rows="3">${esc(data.chat_bot_greeting || '')}</textarea></div>
-                            <button class="btn btn-primary" onclick="App.saveSettings()">Speichern</button>
+
+                            <!-- No Sipgate Panel -->
+                            <div id="sipgateNoPanel" style="display:${!hasSipgate ? 'block' : 'none'}">
+                                <div style="padding:24px;background:var(--bg-secondary);border-radius:12px;text-align:center">
+                                    <div style="font-size:40px;margin-bottom:12px">📞</div>
+                                    <div style="font-size:15px;font-weight:700;margin-bottom:8px">Kein Sipgate Konto?</div>
+                                    <p style="font-size:13px;color:var(--text-light);max-width:400px;margin:0 auto 16px">Sipgate ermöglicht VoIP-Telefonie mit automatischer Anrufverfolgung. Die Integration trackt eingehende und ausgehende Anrufe automatisch.</p>
+                                    <a href="https://www.sipgate.de" target="_blank" class="btn btn-primary">Sipgate Konto erstellen →</a>
+                                </div>
+                            </div>
+
+                            <!-- Assigned Numbers -->
+                            <div style="margin-top:20px">
+                                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+                                    <div style="font-size:14px;font-weight:700">Zugewiesene Nummern</div>
+                                    <button class="btn btn-secondary btn-sm" onclick="document.getElementById('numberRequestPanel').style.display=document.getElementById('numberRequestPanel').style.display==='none'?'block':'none'">+ Neue Nummer anfragen</button>
+                                </div>
+                                ${numbers.length ? '<div class="table-wrap"><table class="data-table"><thead><tr><th>Nummer</th><th>Label</th><th>Block</th><th>Status</th></tr></thead><tbody>' + numRows + '</tbody></table></div>'
+                                : '<div style="padding:20px;text-align:center;color:var(--text-light);font-size:13px;background:var(--bg-secondary);border-radius:8px">Keine Nummern zugewiesen. Fordern Sie neue Nummern über den Button oben an.</div>'}
+                                <div id="numberRequestPanel" style="display:none;margin-top:16px;padding:16px;background:var(--bg-secondary);border-radius:10px">
+                                    <div style="font-size:13px;font-weight:700;margin-bottom:12px">Neue Nummern anfordern</div>
+                                    <div style="display:flex;gap:12px;align-items:end">
+                                        <div class="form-group" style="margin:0"><label class="form-label">Anzahl</label><select class="form-select" id="number_count"><option>1</option><option>2</option><option>3</option><option>5</option><option>10</option><option>20</option></select></div>
+                                        <div class="form-group" style="margin:0;flex:1"><label class="form-label">Nachricht (optional)</label><input class="form-input" id="number_message" placeholder="z.B. Nummern für Standort Berlin"></div>
+                                        <button class="btn btn-primary" onclick="App.requestNumbers()">Anfrage senden</button>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
-                    <!-- ── Passwort ── -->
+                    <!-- ══ Passwort ══ -->
                     <div class="card">
                         <div class="card-header"><span class="card-title">Passwort ändern</span></div>
                         <div class="card-body">
@@ -861,6 +909,9 @@ const App = (function() {
                             <button class="btn btn-primary" onclick="App.changePassword()">Passwort ändern</button>
                         </div>
                     </div>
+
+                    <!-- ══ Chat Bot ══ -->
+                    ${hasAccess('users') ? '<div class="card"><div class="card-header"><span class="card-title">Chat Bot</span></div><div class="card-body"><div class="form-group"><label class="form-label">Bot aktiviert</label><select class="form-select" id="s_chat_bot_enabled"><option value="1" ' + (data.chat_bot_enabled==='1'?'selected':'') + '>Ja</option><option value="0" ' + (data.chat_bot_enabled==='0'?'selected':'') + '>Nein</option></select></div><div class="form-group"><label class="form-label">Begrüßung</label><textarea class="form-textarea" id="s_chat_bot_greeting" rows="3">' + esc(data.chat_bot_greeting || '') + '</textarea></div><button class="btn btn-primary" onclick="App.saveSettings()">Speichern</button></div></div>' : ''}
 
                     ${hasAccess('users') ? '<div class="card" id="updateCard"><div class="card-header"><span class="card-title">System-Update</span></div><div class="card-body" id="updateBody"><div class="spinner" style="margin:20px auto"></div></div></div>' : ''}
                 </div>
@@ -940,6 +991,213 @@ const App = (function() {
                 btn.innerHTML = 'Erneut versuchen';
             }
         }
+    }
+
+    // ══════════════════════════════════════
+    // LICENSES PAGE (user sees own license)
+    // ══════════════════════════════════════
+    async function renderLicenses() {
+        try {
+            var data = await api('my-license');
+            var c = document.getElementById('pageContent');
+            var planLabels = { starter: 'Starter (Kostenlos)', professional: 'Professional', enterprise: 'Enterprise' };
+            var planColors = { starter: '#64748b', professional: '#059669', enterprise: '#0066a1' };
+            var planIcons = { starter: '🆓', professional: '⭐', enterprise: '👑' };
+            var statusLabels = { active: 'Aktiv', expired: 'Abgelaufen', suspended: 'Gesperrt', trial: 'Testphase' };
+            var statusColors = { active: '#059669', expired: '#dc2626', suspended: '#d97706', trial: '#7c3aed' };
+            var plan = data.plan || 'starter';
+            var status = data.status || 'trial';
+
+            // Remaining time
+            var remaining = '';
+            var expiresAt = data.expires_at || data.trial_ends;
+            if (expiresAt && plan !== 'starter') {
+                var diff = new Date(expiresAt) - new Date();
+                if (diff > 0) {
+                    var days = Math.ceil(diff / (1000*60*60*24));
+                    remaining = days + ' Tage verbleibend';
+                } else {
+                    remaining = 'Abgelaufen';
+                }
+            }
+
+            c.innerHTML = '<div class="page-header"><h1 class="page-title">Lizenzverwaltung</h1></div>' +
+            '<div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">' +
+
+            // License Info Card
+            '<div class="card"><div class="card-header"><span class="card-title">Ihre Lizenz</span></div><div class="card-body">' +
+            '<div style="display:flex;align-items:center;gap:16px;margin-bottom:24px">' +
+            '<div style="width:64px;height:64px;border-radius:16px;background:' + planColors[plan] + '15;display:flex;align-items:center;justify-content:center;font-size:32px">' + planIcons[plan] + '</div>' +
+            '<div><div style="font-size:22px;font-weight:800;color:' + planColors[plan] + '">' + esc(planLabels[plan] || plan) + '</div>' +
+            '<span class="badge" style="background:' + statusColors[status] + '20;color:' + statusColors[status] + '">' + esc(statusLabels[status] || status) + '</span></div></div>' +
+
+            '<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">' +
+            '<div style="padding:14px;background:var(--bg-secondary);border-radius:10px"><div style="font-size:11px;color:var(--text-light);text-transform:uppercase;font-weight:600">Lizenzschlüssel</div><div style="font-size:13px;font-weight:700;font-family:monospace;margin-top:4px">' + esc(data.license_key || '-') + '</div></div>' +
+            '<div style="padding:14px;background:var(--bg-secondary);border-radius:10px"><div style="font-size:11px;color:var(--text-light);text-transform:uppercase;font-weight:600">Benutzer</div><div style="font-size:13px;font-weight:700;margin-top:4px">' + esc(data.name || '-') + '</div></div>' +
+            '<div style="padding:14px;background:var(--bg-secondary);border-radius:10px"><div style="font-size:11px;color:var(--text-light);text-transform:uppercase;font-weight:600">E-Mail</div><div style="font-size:13px;font-weight:600;margin-top:4px">' + esc(data.email || '-') + '</div></div>' +
+            '<div style="padding:14px;background:var(--bg-secondary);border-radius:10px"><div style="font-size:11px;color:var(--text-light);text-transform:uppercase;font-weight:600">Firma</div><div style="font-size:13px;font-weight:600;margin-top:4px">' + esc(data.company || '-') + '</div></div>' +
+            (expiresAt && plan !== 'starter' ? '<div style="padding:14px;background:var(--bg-secondary);border-radius:10px;grid-column:span 2"><div style="font-size:11px;color:var(--text-light);text-transform:uppercase;font-weight:600">Gültig bis</div><div style="font-size:14px;font-weight:700;margin-top:4px">' + new Date(expiresAt).toLocaleDateString('de-DE') + ' <span style="font-size:12px;font-weight:500;color:var(--text-light)">(' + remaining + ')</span></div></div>' : '') +
+            '</div></div></div>' +
+
+            // Upgrade Card
+            '<div class="card"><div class="card-header"><span class="card-title">Paket upgraden</span></div><div class="card-body">' +
+            '<p style="color:var(--text-light);font-size:13px;margin-bottom:20px">Wählen Sie Ihr gewünschtes Paket und senden Sie eine Upgrade-Anfrage.</p>' +
+
+            (plan !== 'enterprise' ? '<div style="margin-bottom:16px"><label class="form-label">Gewünschtes Paket</label>' +
+            '<select class="form-select" id="upgrade_plan">' +
+            (plan === 'starter' ? '<option value="professional">Professional — 49€/Monat</option>' : '') +
+            '<option value="enterprise">Enterprise — 99€/Monat</option>' +
+            '</select></div>' +
+            '<div style="margin-bottom:16px"><label class="form-label">Nachricht (optional)</label>' +
+            '<textarea class="form-textarea" id="upgrade_message" rows="3" placeholder="Zusätzliche Informationen..."></textarea></div>' +
+            '<button class="btn btn-primary" onclick="App.requestUpgrade()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 19V5m-7 7l7-7 7 7"/></svg> Upgrade anfragen</button>'
+            : '<div style="padding:24px;text-align:center;background:var(--bg-secondary);border-radius:12px"><div style="font-size:32px;margin-bottom:8px">👑</div><div style="font-size:16px;font-weight:700">Sie nutzen bereits Enterprise</div><div style="font-size:13px;color:var(--text-light);margin-top:4px">Das ist unser höchstes Paket mit allen Funktionen.</div></div>') +
+
+            '</div></div></div>';
+
+        } catch (e) { toast(e.message, 'error'); }
+    }
+
+    async function requestUpgrade() {
+        var plan = document.getElementById('upgrade_plan');
+        var msg = document.getElementById('upgrade_message');
+        if (!plan) return;
+        try {
+            await api('request-upgrade', { method: 'POST', body: { requested_plan: plan.value, message: msg ? msg.value : '' } });
+            toast('Upgrade-Anfrage wurde gesendet! Wir melden uns per E-Mail.', 'success');
+            plan.disabled = true;
+            if (msg) msg.disabled = true;
+        } catch (e) { toast(e.message, 'error'); }
+    }
+
+    async function requestNumbers() {
+        var count = document.getElementById('number_count');
+        var msg = document.getElementById('number_message');
+        if (!count) return;
+        try {
+            await api('request-numbers', { method: 'POST', body: { count: parseInt(count.value), message: msg ? msg.value : '' } });
+            toast('Nummer-Anfrage wurde gesendet!', 'success');
+            count.disabled = true;
+            if (msg) msg.disabled = true;
+        } catch (e) { toast(e.message, 'error'); }
+    }
+
+    // ══════════════════════════════════════
+    // REQUESTS PAGE (Admin — view all requests)
+    // ══════════════════════════════════════
+    async function renderRequests() {
+        try {
+            var data = await api('requests');
+            var c = document.getElementById('pageContent');
+            var reqs = data.requests || [];
+
+            var typeLabels = { package_upgrade: '📦 Paket-Upgrade', number_request: '📞 Nummer-Anfrage' };
+            var statusBadges = {
+                pending: '<span class="badge badge-warning">Ausstehend</span>',
+                approved: '<span class="badge badge-success">Genehmigt</span>',
+                rejected: '<span class="badge badge-danger">Abgelehnt</span>'
+            };
+            var planLabels = { starter: 'Starter', professional: 'Professional', enterprise: 'Enterprise' };
+
+            var rows = '';
+            reqs.forEach(function(r) {
+                var details = '';
+                if (r.type === 'package_upgrade') {
+                    details = esc(planLabels[r.current_plan] || r.current_plan || '-') + ' → <strong>' + esc(planLabels[r.requested_plan] || r.requested_plan || '-') + '</strong>';
+                } else {
+                    details = '<strong>' + r.number_count + '</strong> Nummern';
+                }
+                rows += '<tr>' +
+                    '<td>' + (typeLabels[r.type] || r.type) + '</td>' +
+                    '<td><strong>' + esc(r.user_name) + '</strong><br><span style="font-size:12px;color:var(--text-light)">' + esc(r.user_email) + '</span>' + (r.user_company ? '<br><span style="font-size:12px;color:var(--text-light)">' + esc(r.user_company) + '</span>' : '') + '</td>' +
+                    '<td>' + details + '</td>' +
+                    '<td>' + (r.message ? '<span style="font-size:12px">' + esc(r.message).substring(0,60) + '</span>' : '-') + '</td>' +
+                    '<td>' + (statusBadges[r.status] || r.status) + '</td>' +
+                    '<td style="font-size:12px">' + new Date(r.created_at).toLocaleDateString('de-DE') + '</td>' +
+                    '<td>' + (r.status === 'pending' ?
+                        '<button class="btn btn-sm btn-primary" onclick="App.updateRequest(' + r.id + ',\'approved\')" style="margin-right:4px">✓</button>' +
+                        '<button class="btn btn-sm btn-secondary" onclick="App.updateRequest(' + r.id + ',\'rejected\')">✗</button>'
+                        : (r.admin_note ? '<span style="font-size:12px">' + esc(r.admin_note) + '</span>' : '-')) +
+                    '</td></tr>';
+            });
+
+            c.innerHTML = '<div class="page-header"><h1 class="page-title">Anfragen</h1><span class="badge badge-info">' + reqs.length + '</span></div>' +
+                '<div class="card"><div class="card-body" style="padding:0">' +
+                (reqs.length ? '<div class="table-wrap"><table class="data-table"><thead><tr><th>Typ</th><th>Benutzer</th><th>Details</th><th>Nachricht</th><th>Status</th><th>Datum</th><th>Aktion</th></tr></thead><tbody>' + rows + '</tbody></table></div>'
+                : '<div class="empty-state" style="padding:60px 20px"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--border)" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg><p>Keine Anfragen vorhanden</p></div>') +
+                '</div></div>';
+        } catch (e) { toast(e.message, 'error'); }
+    }
+
+    async function updateRequest(id, status) {
+        var note = '';
+        if (status === 'rejected') {
+            note = prompt('Grund für Ablehnung (optional):') || '';
+        }
+        try {
+            await api('requests', { method: 'PUT', body: { id: id, status: status, admin_note: note } });
+            toast(status === 'approved' ? 'Anfrage genehmigt' : 'Anfrage abgelehnt', status === 'approved' ? 'success' : 'info');
+            renderRequests();
+        } catch (e) { toast(e.message, 'error'); }
+    }
+
+    // ══════════════════════════════════════
+    // FILE UPLOADS (Avatar / Logo)
+    // ══════════════════════════════════════
+    function uploadAvatar() {
+        var input = document.createElement('input');
+        input.type = 'file';
+        input.accept = 'image/*';
+        input.onchange = async function() {
+            if (!input.files[0]) return;
+            var fd = new FormData();
+            fd.append('file', input.files[0]);
+            try {
+                var res = await fetch('api.php?action=upload-avatar', { method: 'POST', body: fd });
+                var data = await res.json();
+                if (!res.ok) throw new Error(data.error);
+                toast('Profilbild aktualisiert', 'success');
+                var img = document.getElementById('profileAvatar');
+                if (img) img.src = data.url + '?' + Date.now();
+                var sidebarImg = document.querySelector('.user-avatar img');
+                if (sidebarImg) sidebarImg.src = data.url + '?' + Date.now();
+            } catch (e) { toast(e.message, 'error'); }
+        };
+        input.click();
+    }
+
+    function uploadLogo() {
+        var input = document.createElement('input');
+        input.type = 'file';
+        input.accept = 'image/*';
+        input.onchange = async function() {
+            if (!input.files[0]) return;
+            var fd = new FormData();
+            fd.append('file', input.files[0]);
+            try {
+                var res = await fetch('api.php?action=upload-logo', { method: 'POST', body: fd });
+                var data = await res.json();
+                if (!res.ok) throw new Error(data.error);
+                toast('Firmenlogo aktualisiert', 'success');
+                var img = document.getElementById('companyLogo');
+                if (img) img.src = data.url + '?' + Date.now();
+            } catch (e) { toast(e.message, 'error'); }
+        };
+        input.click();
+    }
+
+    function toggleSipgate(has) {
+        var panel1 = document.getElementById('sipgateHasPanel');
+        var panel2 = document.getElementById('sipgateNoPanel');
+        if (has) {
+            if (panel1) panel1.style.display = 'block';
+            if (panel2) panel2.style.display = 'none';
+        } else {
+            if (panel1) panel1.style.display = 'none';
+            if (panel2) panel2.style.display = 'block';
+        }
+        // Save preference
+        api('my-profile', { method: 'POST', body: { has_sipgate: has ? 1 : 0 } });
     }
 
     async function saveSettings() {
@@ -1771,6 +2029,12 @@ const App = (function() {
         closeProfile: closeProfile,
         saveProfileInfo: saveProfileInfo,
         saveProfilePassword: saveProfilePassword,
+        requestUpgrade: requestUpgrade,
+        requestNumbers: requestNumbers,
+        updateRequest: updateRequest,
+        uploadAvatar: uploadAvatar,
+        uploadLogo: uploadLogo,
+        toggleSipgate: toggleSipgate,
         toast: toast
     };
 
